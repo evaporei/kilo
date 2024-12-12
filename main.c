@@ -60,6 +60,7 @@ char editor_read_key(void) {
 
 void editor_refresh_screen(void) {
     write(STDOUT_FILENO, "\x1b[2J", 4);
+    write(STDOUT_FILENO, "\x1b[H", 3);
 }
 
 /*** input ***/
