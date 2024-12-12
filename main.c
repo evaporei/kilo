@@ -56,6 +56,12 @@ char editor_read_key(void) {
     return c;
 }
 
+/*** output ***/
+
+void editor_refresh_screen(void) {
+    write(STDOUT_FILENO, "\x1b[2J", 4);
+}
+
 /*** input ***/
 
 void editor_process_keypress(void) {
@@ -74,6 +80,7 @@ int main(void) {
     enable_raw_mode();
 
     while (1) {
+        editor_refresh_screen();
         editor_process_keypress();
     }
     return 0;
