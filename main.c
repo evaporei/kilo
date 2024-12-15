@@ -138,6 +138,13 @@ void editor_draw_rows(struct AppendBuf *abuf) {
             );
             if (welcomelen > E.screencols)
                 welcomelen = E.screencols;
+            int padding = (E.screencols - welcomelen) / 2;
+            if (padding) {
+                abuf_append(abuf, "~", 1);
+                padding--;
+            }
+            while (padding--)
+                abuf_append(abuf, " ", 1);
 
             abuf_append(abuf, welcome, welcomelen);
         } else {
