@@ -11,6 +11,8 @@
 
 /*** defines ***/
 
+#define VERSION "0.0.1"
+
 #define CTRL_KEY(k) ((k) & 0x1f)
 
 /*** data ***/
@@ -126,7 +128,21 @@ void abuf_free(struct AppendBuf *abuf) {
 
 void editor_draw_rows(struct AppendBuf *abuf) {
     for (int y = 0; y < E.screenrows; y++) {
-        abuf_append(abuf, "~", 1);
+        if (y == E.screenrows / 3) {
+            char welcome[80];
+            int welcomelen = snprintf(
+                welcome,
+                sizeof(welcome),
+                "Kilo editor -- version %s",
+                VERSION
+            );
+            if (welcomelen > E.screencols)
+                welcomelen = E.screencols;
+
+            abuf_append(abuf, welcome, welcomelen);
+        } else {
+            abuf_append(abuf, "~", 1);
+        }
 
         abuf_append(abuf, "\x1b[K", 3);
         if (y < E.screenrows - 1)
