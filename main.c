@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/ioctl.h>
 #include <termios.h>
 #include <unistd.h>
@@ -107,6 +108,19 @@ struct AppendBuf {
 };
 
 #define APPEND_BUF_INIT {NULL, 0}
+
+void abuf_append(struct AppendBuf *abuf, const char *s, int len) {
+    char *new = realloc(abuf->data, abuf->len + len);
+    if (!new) return;
+
+    memcpy(&new[abuf->len], s, len);
+    abuf->data = new;
+    abuf->len += len;
+}
+
+void abuf_free(struct AppendBuf *abuf) {
+    free(abuf->data);
+}
 
 /*** output ***/
 
