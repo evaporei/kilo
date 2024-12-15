@@ -103,7 +103,10 @@ int get_window_size(int *rows, int *cols) {
 
 void editor_draw_rows(void) {
     for (int y = 0; y < E.screenrows; y++) {
-        write(STDOUT_FILENO, "~\r\n", 3);
+        write(STDOUT_FILENO, "~", 1);
+
+        if (y < E.screenrows - 1)
+            write(STDOUT_FILENO, "\r\n", 2);
     }
 }
 
