@@ -80,7 +80,7 @@ int get_window_size(int *rows, int *cols) {
 /*** output ***/
 
 void editor_draw_rows(void) {
-    for (int y = 0; y < 24; y++) {
+    for (int y = 0; y < E.screenrows; y++) {
         write(STDOUT_FILENO, "~\r\n", 3);
     }
 }
