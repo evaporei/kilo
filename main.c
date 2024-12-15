@@ -107,7 +107,7 @@ struct AppendBuf {
     int len;
 };
 
-#define APPEND_BUF_INIT {NULL, 0}
+#define ABUF_INIT {NULL, 0}
 
 void abuf_append(struct AppendBuf *abuf, const char *s, int len) {
     char *new = realloc(abuf->data, abuf->len + len);
@@ -124,21 +124,26 @@ void abuf_free(struct AppendBuf *abuf) {
 
 /*** output ***/
 
-void editor_draw_rows(void) {
+void editor_draw_rows(struct AppendBuf *abuf) {
     for (int y = 0; y < E.screenrows; y++) {
-        write(STDOUT_FILENO, "~", 1);
+        abuf_append(abuf, "~", 1);
 
         if (y < E.screenrows - 1)
-            write(STDOUT_FILENO, "\r\n", 2);
+            abuf_append(abuf, "\r\n", 2);
     }
 }
 
 void editor_refresh_screen(void) {
-    write(STDOUT_FILENO, "\x1b[2J", 4);
-    write(STDOUT_FILENO, "\x1b[H", 3);
+    struct AppendBuf abuf = ABUF_INIT;
 
-    editor_draw_rows();
-    write(STDOUT_FILENO, "\x1b[H", 3);
+    abuf_append(&abuf, "\x1b[2J", 4);
+    abuf_append(&abuf, "\x1b[H", 3);
+
+    editor_draw_rows(&abuf);
+    abuf_append(&abuf, "\x1b[H", 3);
+
+    write(STDIN_FILENO, abuf.data, abuf.len);
+    abuf_free(&abuf);
 }
 
 /*** input ***/
