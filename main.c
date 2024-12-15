@@ -99,6 +99,15 @@ int get_window_size(int *rows, int *cols) {
     return 0;
 }
 
+/*** append buffer ***/
+
+struct AppendBuf {
+    char *data;
+    int len;
+};
+
+#define APPEND_BUF_INIT {NULL, 0}
+
 /*** output ***/
 
 void editor_draw_rows(void) {
