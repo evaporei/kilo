@@ -128,6 +128,7 @@ void editor_draw_rows(struct AppendBuf *abuf) {
     for (int y = 0; y < E.screenrows; y++) {
         abuf_append(abuf, "~", 1);
 
+        abuf_append(abuf, "\x1b[K", 3);
         if (y < E.screenrows - 1)
             abuf_append(abuf, "\r\n", 2);
     }
@@ -137,7 +138,6 @@ void editor_refresh_screen(void) {
     struct AppendBuf abuf = ABUF_INIT;
 
     abuf_append(&abuf, "\x1b[?25l", 6);
-    abuf_append(&abuf, "\x1b[2J", 4);
     abuf_append(&abuf, "\x1b[H", 3);
 
     editor_draw_rows(&abuf);
