@@ -170,7 +170,6 @@ void editor_refresh_screen(void) {
     snprintf(buf, sizeof(buf), "\x1b[%d;%dH", E.cy + 1, E.cx + 1);
     abuf_append(&abuf, buf, strlen(buf));
 
-    abuf_append(&abuf, "\x1b[H", 3);
     abuf_append(&abuf, "\x1b[?25h", 6);
 
     write(STDIN_FILENO, abuf.data, abuf.len);
@@ -178,6 +177,23 @@ void editor_refresh_screen(void) {
 }
 
 /*** input ***/
+
+void editor_move_cursor(char key) {
+    switch (key) {
+        case 'h':
+            E.cx--;
+            break;
+        case 'j':
+            E.cy++;
+            break;
+        case 'k':
+            E.cy--;
+            break;
+        case 'l':
+            E.cx++;
+            break;
+    }
+}
 
 void editor_process_keypress(void) {
     char c = editor_read_key();
@@ -187,6 +203,12 @@ void editor_process_keypress(void) {
             write(STDOUT_FILENO, "\x1b[2J", 4);
             write(STDOUT_FILENO, "\x1b[H", 3);
             exit(0);
+            break;
+        case 'h':
+        case 'j':
+        case 'k':
+        case 'l':
+            editor_move_cursor(c);
             break;
     }
 }
