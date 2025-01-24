@@ -166,6 +166,10 @@ void editor_refresh_screen(void) {
 
     editor_draw_rows(&abuf);
 
+    char buf[32];
+    snprintf(buf, sizeof(buf), "\x1b[%d;%dH", E.cy + 1, E.cx + 1);
+    abuf_append(&abuf, buf, strlen(buf));
+
     abuf_append(&abuf, "\x1b[H", 3);
     abuf_append(&abuf, "\x1b[?25h", 6);
 
