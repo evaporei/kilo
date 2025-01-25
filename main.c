@@ -44,7 +44,7 @@ struct EditorConfig {
     int screenrows;
     int screencols;
     int numrows;
-    Row row;
+    Row *row;
     struct termios orig_termios;
 };
 
@@ -332,6 +332,7 @@ void init_editor(void) {
     E.cx = 0;
     E.cy = 0;
     E.numrows = 0;
+    E.row = NULL;
 
     if (get_window_size(&E.screenrows, &E.screencols) == -1)
         die("get_window_size");
