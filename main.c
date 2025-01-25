@@ -199,27 +199,34 @@ void abuf_free(struct AppendBuf *abuf) {
 
 void editor_draw_rows(struct AppendBuf *abuf) {
     for (int y = 0; y < E.screenrows; y++) {
-        if (y == E.screenrows / 3) {
-            char welcome[80];
-            int welcomelen = snprintf(
-                welcome,
-                sizeof(welcome),
-                "Kilo editor -- version %s",
-                VERSION
-            );
-            if (welcomelen > E.screencols)
-                welcomelen = E.screencols;
-            int padding = (E.screencols - welcomelen) / 2;
-            if (padding) {
-                abuf_append(abuf, "~", 1);
-                padding--;
-            }
-            while (padding--)
-                abuf_append(abuf, " ", 1);
+        if (y >= E.numrows) {
+            if (y == E.screenrows / 3) {
+                char welcome[80];
+                int welcomelen = snprintf(
+                        welcome,
+                        sizeof(welcome),
+                        "Kilo editor -- version %s",
+                        VERSION
+                        );
+                if (welcomelen > E.screencols)
+                    welcomelen = E.screencols;
+                int padding = (E.screencols - welcomelen) / 2;
+                if (padding) {
+                    abuf_append(abuf, "~", 1);
+                    padding--;
+                }
+                while (padding--)
+                    abuf_append(abuf, " ", 1);
 
-            abuf_append(abuf, welcome, welcomelen);
+                abuf_append(abuf, welcome, welcomelen);
+            } else {
+                abuf_append(abuf, "~", 1);
+            }
         } else {
-            abuf_append(abuf, "~", 1);
+            int len = E.row.size;
+            if (len > E.screenrows)
+                len = E.screenrows;
+            abuf_append(abuf, E.row.chars, len);
         }
 
         abuf_append(abuf, "\x1b[K", 3);
