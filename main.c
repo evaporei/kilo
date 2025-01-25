@@ -311,8 +311,7 @@ void editor_move_cursor(int key) {
                 E.cy--;
             break;
         case ARROW_RIGHT:
-            if (E.cx != E.screencols - 1)
-                E.cx++;
+            E.cx++;
             break;
     }
 }
