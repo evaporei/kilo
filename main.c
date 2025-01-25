@@ -43,6 +43,7 @@ typedef struct Row {
 
 struct EditorConfig {
     int cx, cy;
+    int rx;
     int rowoff;
     int coloff;
     int screenrows;
@@ -401,6 +402,7 @@ void editor_process_keypress(void) {
 void init_editor(void) {
     E.cx = 0;
     E.cy = 0;
+    E.rx = 0;
     E.rowoff = 0;
     E.coloff = 0;
     E.numrows = 0;
