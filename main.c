@@ -222,6 +222,13 @@ void abuf_free(struct AppendBuf *abuf) {
 
 /*** output ***/
 
+void editor_scroll(void) {
+    if (E.cy < E.rowoff)
+        E.rowoff = E.cy;
+    if (E.cy >= E.rowoff + E.screenrows)
+        E.rowoff = E.cy - E.screenrows + 1;
+}
+
 void editor_draw_rows(struct AppendBuf *abuf) {
     for (int y = 0; y < E.screenrows; y++) {
         int filerow = y + E.rowoff;
@@ -262,6 +269,8 @@ void editor_draw_rows(struct AppendBuf *abuf) {
 }
 
 void editor_refresh_screen(void) {
+    editor_scroll();
+
     struct AppendBuf abuf = ABUF_INIT;
 
     abuf_append(&abuf, "\x1b[?25l", 6);
