@@ -170,15 +170,27 @@ int get_window_size(int *rows, int *cols) {
 /*** row operations ***/
 
 void editor_update_row(Row *row) {
-    free(row->render);
-    row->render = malloc(row->size + 1);
+    int tabs = 0;
 
-    int i;
-    for (i = 0; i < row->size; i++) {
-        row->render[i] = row->chars[i];
+    for (int j = 0; j < row->size; j++) {
+        if (row->chars[j] == '\t') tabs++;
     }
-    row->render[i] = '\0';
-    row->rsize = i;
+
+    free(row->render);
+    row->render = malloc(row->size + 7*tabs + 1);
+
+    int idx = 0;
+    for (int j = 0; j < row->size; j++) {
+        if (row->chars[j] == '\t') {
+            do {
+                row->render[idx++] = ' ';
+            } while (idx % 8 != 0);
+        } else {
+            row->render[idx++] = row->chars[j];
+        }
+    }
+    row->render[idx] = '\0';
+    row->rsize = idx;
 }
 
 void editor_append_row(char *s, size_t len) {
