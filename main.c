@@ -110,15 +110,15 @@ int editor_read_key(void) {
                         case '8': return END_KEY;
                     }
                 }
-            }
-
-            switch (seq[1]) {
-                case 'A': return ARROW_UP;
-                case 'B': return ARROW_DOWN;
-                case 'C': return ARROW_RIGHT;
-                case 'D': return ARROW_LEFT;
-                case 'H': return HOME_KEY;
-                case 'F': return END_KEY;
+            } else {
+                switch (seq[1]) {
+                    case 'A': return ARROW_UP;
+                    case 'B': return ARROW_DOWN;
+                    case 'C': return ARROW_RIGHT;
+                    case 'D': return ARROW_LEFT;
+                    case 'H': return HOME_KEY;
+                    case 'F': return END_KEY;
+                }
             }
         } else if (seq[0] == 'O') {
             switch (seq[1]) {
@@ -134,9 +134,8 @@ int editor_read_key(void) {
 int get_cursor_position(int *rows, int *cols) {
     char buf[32];
     unsigned int i = 0;
-    if (write(STDOUT_FILENO, "\x1b[6n", 4) != 4) return -1;
 
-    printf("\r\n");
+    if (write(STDOUT_FILENO, "\x1b[6n", 4) != 4) return -1;
 
     while (i < sizeof(buf) - 1) {
         if (read(STDIN_FILENO, &buf[i], 1) != 1) break;
@@ -184,10 +183,10 @@ void editor_open(char *filename) {
     if (!fp) die("fopen");
 
     char *line = NULL;
-    size_t linecap = 0;
+    size_t line_cap = 0;
     ssize_t line_len;
 
-    while ((line_len = getline(&line, &linecap, fp) != -1)) {
+    while ((line_len = getline(&line, &line_cap, fp)) != -1) {
         while (line_len > 0 && (line[line_len - 1] == '\n' ||
                                 line[line_len - 1] == '\r'))
             line_len--;
@@ -227,15 +226,15 @@ void editor_draw_rows(struct AppendBuf *abuf) {
         if (y >= E.numrows) {
             if (E.numrows == 0 && y == E.screenrows / 3) {
                 char welcome[80];
-                int welcomelen = snprintf(
-                        welcome,
-                        sizeof(welcome),
-                        "Kilo editor -- version %s",
-                        VERSION
-                        );
-                if (welcomelen > E.screencols)
-                    welcomelen = E.screencols;
-                int padding = (E.screencols - welcomelen) / 2;
+                int welcome_len = snprintf(
+                    welcome,
+                    sizeof(welcome),
+                    "Kilo editor -- version %s",
+                    VERSION
+                );
+                if (welcome_len > E.screencols)
+                    welcome_len = E.screencols;
+                int padding = (E.screencols - welcome_len) / 2;
                 if (padding) {
                     abuf_append(abuf, "~", 1);
                     padding--;
@@ -243,14 +242,14 @@ void editor_draw_rows(struct AppendBuf *abuf) {
                 while (padding--)
                     abuf_append(abuf, " ", 1);
 
-                abuf_append(abuf, welcome, welcomelen);
+                abuf_append(abuf, welcome, welcome_len);
             } else {
                 abuf_append(abuf, "~", 1);
             }
         } else {
             int len = E.row[y].size;
-            if (len > E.screenrows)
-                len = E.screenrows;
+            if (len > E.screencols)
+                len = E.screencols;
             abuf_append(abuf, E.row[y].chars, len);
         }
 
