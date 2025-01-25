@@ -186,9 +186,8 @@ void editor_open(char *filename) {
     char *line = NULL;
     size_t linecap = 0;
     ssize_t line_len;
-    line_len = getline(&line, &linecap, fp);
 
-    if (line_len != -1) {
+    while ((line_len = getline(&line, &linecap, fp) != -1)) {
         while (line_len > 0 && (line[line_len - 1] == '\n' ||
                                 line[line_len - 1] == '\r'))
             line_len--;
