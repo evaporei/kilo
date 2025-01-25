@@ -224,7 +224,8 @@ void abuf_free(struct AppendBuf *abuf) {
 
 void editor_draw_rows(struct AppendBuf *abuf) {
     for (int y = 0; y < E.screenrows; y++) {
-        if (y >= E.numrows) {
+        int filerow = y + E.rowoff;
+        if (filerow >= E.numrows) {
             if (E.numrows == 0 && y == E.screenrows / 3) {
                 char welcome[80];
                 int welcome_len = snprintf(
@@ -248,10 +249,10 @@ void editor_draw_rows(struct AppendBuf *abuf) {
                 abuf_append(abuf, "~", 1);
             }
         } else {
-            int len = E.row[y].size;
+            int len = E.row[filerow].size;
             if (len > E.screencols)
                 len = E.screencols;
-            abuf_append(abuf, E.row[y].chars, len);
+            abuf_append(abuf, E.row[filerow].chars, len);
         }
 
         abuf_append(abuf, "\x1b[K", 3);
