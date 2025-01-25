@@ -162,15 +162,29 @@ int get_window_size(int *rows, int *cols) {
 
 /*** file i/o ***/
 
-void editor_open(void) {
-    char *line = "Hello, world!";
-    size_t line_len = 13;
+void editor_open(char *filename) {
+    FILE *fp = fopen(filename, "r");
+    if (!fp) die("fopen");
 
-    E.row.size = line_len;
-    E.row.chars = malloc(line_len + 1);
-    memcpy(E.row.chars, line, line_len);
-    E.row.chars[line_len] = '\0';
-    E.numrows = 1;
+    char *line = NULL;
+    size_t linecap = 0;
+    ssize_t line_len;
+    line_len = getline(&line, &linecap, fp);
+
+    if (line_len != -1) {
+        while (line_len > 0 && (line[line_len - 1] == '\n' ||
+                                line[line_len - 1] == '\r'))
+            line_len--;
+
+        E.row.size = line_len;
+        E.row.chars = malloc(line_len + 1);
+        memcpy(E.row.chars, line, line_len);
+        E.row.chars[line_len] = '\0';
+        E.numrows = 1;
+    }
+
+    free(line);
+    fclose(fp);
 }
 
 /*** append buffer ***/
@@ -319,10 +333,13 @@ void init_editor(void) {
         die("get_window_size");
 }
 
-int main(void) {
+int main(int argc, char *argv[]) {
     enable_raw_mode();
     init_editor();
-    editor_open();
+
+    if (argc >= 2) {
+        editor_open(argv[1]);
+    }
 
     while (1) {
         editor_refresh_screen();
