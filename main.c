@@ -249,10 +249,10 @@ void editor_draw_rows(struct AppendBuf *abuf) {
                 abuf_append(abuf, "~", 1);
             }
         } else {
-            int len = E.row.size;
+            int len = E.row[y].size;
             if (len > E.screenrows)
                 len = E.screenrows;
-            abuf_append(abuf, E.row.chars, len);
+            abuf_append(abuf, E.row[y].chars, len);
         }
 
         abuf_append(abuf, "\x1b[K", 3);
