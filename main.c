@@ -169,6 +169,18 @@ int get_window_size(int *rows, int *cols) {
 
 /*** row operations ***/
 
+void editor_update_row(Row *row) {
+    free(row->render);
+    row->render = malloc(row->size + 1);
+
+    int i;
+    for (i = 0; i < row->size; i++) {
+        row->render[i] = row->chars[i];
+    }
+    row->render[i] = '\0';
+    row->rsize = i;
+}
+
 void editor_append_row(char *s, size_t len) {
     E.row = realloc(E.row, sizeof(Row) * (E.numrows + 1));
 
@@ -180,6 +192,7 @@ void editor_append_row(char *s, size_t len) {
 
     E.row[at].rsize = 0;
     E.row[at].render = NULL;
+    editor_update_row(&E.row[at]);
 
     E.numrows++;
 }
