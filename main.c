@@ -297,12 +297,16 @@ void editor_save(void) {
     if (fd != -1) {
         if (ftruncate(fd, len) != -1) {
             if (write(fd, buf, len) == len) {
-                // written 'len' bytes
+                close(fd);
+                free(buf);
+                editor_set_status_message("%d bytes written to disk", len);
+                return;
             }
         }
         close(fd);
     }
     free(buf);
+    editor_set_status_message("Can't save! I/O error: %s", strerror(errno));
 }
 
 /*** append buffer ***/
@@ -573,7 +577,7 @@ int main(int argc, char *argv[]) {
         editor_open(argv[1]);
     }
 
-    editor_set_status_message("HELP: Ctrl-Q = quit");
+    editor_set_status_message("HELP: Ctrl-S = save | Ctrl-Q = quit");
 
     while (1) {
         editor_refresh_screen();
