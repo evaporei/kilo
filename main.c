@@ -326,13 +326,18 @@ void editor_draw_rows(struct AppendBuf *abuf) {
 void editor_draw_status_bar(struct AppendBuf *abuf) {
     abuf_append(abuf, "\x1b[7m", 4);
 
-    char status[80];
+    char status[80], rstatus[80];
     int len = snprintf(status, sizeof(status), "%.20s - %d lines",
             E.filename ? E.filename : "[No Name]", E.numrows);
+    int rlen = snprintf(rstatus, sizeof(rstatus), "%d/%d", E.cy + 1, E.numrows);
     if (len > E.screencols) len = E.screencols;
     abuf_append(abuf, status, len);
 
     while (len < E.screencols) {
+        if (E.screencols - len == rlen) {
+            abuf_append(abuf, rstatus, rlen);
+            break;
+        }
         abuf_append(abuf, " ", 1);
         len++;
     }
