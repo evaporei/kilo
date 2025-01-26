@@ -315,8 +315,7 @@ void editor_draw_rows(struct AppendBuf *abuf) {
         }
 
         abuf_append(abuf, "\x1b[K", 3);
-        if (y < E.screenrows - 1)
-            abuf_append(abuf, "\r\n", 2);
+        abuf_append(abuf, "\r\n", 2);
     }
 }
 
@@ -432,6 +431,7 @@ void init_editor(void) {
 
     if (get_window_size(&E.screenrows, &E.screencols) == -1)
         die("get_window_size");
+    E.screenrows -= 1;
 }
 
 int main(int argc, char *argv[]) {
