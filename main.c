@@ -234,6 +234,15 @@ void editor_row_insert_char(Row *row, int at, int c) {
     editor_update_row(row);
 }
 
+/*** editor operations ***/
+
+void editor_insert_char(int c) {
+    if (E.cy == E.numrows)
+        editor_append_row("", 0);
+    editor_row_insert_char(&E.row[E.cy], E.cx, c);
+    E.cx++;
+}
+
 /*** file i/o ***/
 
 void editor_open(char *filename) {
