@@ -246,6 +246,24 @@ void editor_insert_char(int c) {
 
 /*** file i/o ***/
 
+char *editor_rows_to_string(int *buf_len) {
+    int total_len = 0;
+    for (int j = 0; j < E.numrows; j++)
+        total_len += E.row[j].size + 1;
+    *buf_len = total_len;
+
+    char *buf = malloc(total_len);
+    char *p = buf;
+    for (int j = 0; j < E.numrows; j++) {
+        memcpy(p, E.row[j].chars, E.row[j].size);
+        p += E.row[j].size;
+        *p = '\n';
+        p++;
+    }
+
+    return buf;
+}
+
 void editor_open(char *filename) {
     free(E.filename);
     E.filename = strdup(filename);
