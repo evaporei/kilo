@@ -230,6 +230,7 @@ void editor_append_row(char *s, size_t len) {
     editor_update_row(&E.row[at]);
 
     E.numrows++;
+    E.dirty++;
 }
 
 void editor_row_insert_char(Row *row, int at, int c) {
@@ -239,6 +240,7 @@ void editor_row_insert_char(Row *row, int at, int c) {
     row->size++;
     row->chars[at] = c;
     editor_update_row(row);
+    E.dirty++;
 }
 
 /*** editor operations ***/
