@@ -350,6 +350,14 @@ void editor_draw_status_bar(struct AppendBuf *abuf) {
     abuf_append(abuf, "\r\n", 2);
 }
 
+void editor_draw_message_bar(struct AppendBuf *abuf) {
+    abuf_append(abuf, "\x1b[K", 3);
+    int msg_len = strlen(E.statusmsg);
+    if (msg_len > E.screencols) msg_len = E.screencols;
+    if (msg_len && time(NULL) - E.statusmsg_time < 5)
+        abuf_append(abuf, E.statusmsg, msg_len);
+}
+
 void editor_refresh_screen(void) {
     editor_scroll();
 
@@ -360,6 +368,7 @@ void editor_refresh_screen(void) {
 
     editor_draw_rows(&abuf);
     editor_draw_status_bar(&abuf);
+    editor_draw_message_bar(&abuf);
 
     char buf[32];
     snprintf(buf, sizeof(buf), "\x1b[%d;%dH", (E.cy - E.rowoff) + 1,
