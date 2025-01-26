@@ -292,6 +292,7 @@ void editor_open(char *filename) {
 
     free(line);
     fclose(fp);
+    E.dirty = 0;
 }
 
 void editor_save(void) {
@@ -306,6 +307,7 @@ void editor_save(void) {
             if (write(fd, buf, len) == len) {
                 close(fd);
                 free(buf);
+                E.dirty = 0;
                 editor_set_status_message("%d bytes written to disk", len);
                 return;
             }
