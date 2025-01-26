@@ -320,7 +320,7 @@ void editor_refresh_screen(void) {
 
     char buf[32];
     snprintf(buf, sizeof(buf), "\x1b[%d;%dH", (E.cy - E.rowoff) + 1,
-                                              (E.cx - E.coloff) + 1);
+                                              (E.rx - E.coloff) + 1);
     abuf_append(&abuf, buf, strlen(buf));
 
     abuf_append(&abuf, "\x1b[?25h", 6);
