@@ -170,6 +170,16 @@ int get_window_size(int *rows, int *cols) {
 
 /*** row operations ***/
 
+int editor_row_cx_to_rx(Row *row, int cx) {
+    int rx = 0;
+    for (int j = 0; j < cx; j++) {
+        if (row->chars[j] == '\t')
+            rx += (KILO_TAB_STOP - 1) - (rx % KILO_TAB_STOP);
+        rx++;
+    }
+    return rx;
+}
+
 void editor_update_row(Row *row) {
     int tabs = 0;
 
