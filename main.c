@@ -62,6 +62,10 @@ struct EditorConfig {
 
 struct EditorConfig E;
 
+/*** prototypes ***/
+
+void editor_set_status_message(const char *fmt, ...);
+
 /*** terminal ***/
 
 void die(const char *s) {
