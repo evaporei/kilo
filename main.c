@@ -319,6 +319,18 @@ void editor_draw_rows(struct AppendBuf *abuf) {
     }
 }
 
+void editor_draw_status_bar(struct AppendBuf *abuf) {
+    abuf_append(abuf, "\x1b[7m", 4);
+
+    int len = 0;
+    while (len < E.screencols) {
+        abuf_append(abuf, " ", 1);
+        len++;
+    }
+
+    abuf_append(abuf, "\x1b[m", 3);
+}
+
 void editor_refresh_screen(void) {
     editor_scroll();
 
@@ -328,6 +340,7 @@ void editor_refresh_screen(void) {
     abuf_append(&abuf, "\x1b[H", 3);
 
     editor_draw_rows(&abuf);
+    editor_draw_status_bar(&abuf);
 
     char buf[32];
     snprintf(buf, sizeof(buf), "\x1b[%d;%dH", (E.cy - E.rowoff) + 1,
