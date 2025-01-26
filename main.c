@@ -491,6 +491,10 @@ void editor_process_keypress(void) {
             write(STDOUT_FILENO, "\x1b[H", 3);
             exit(0);
             break;
+
+        case CTRL_KEY('s'):
+            editor_save();
+            break;
         case HOME_KEY:
             E.cx = 0;
             break;
