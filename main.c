@@ -347,6 +347,7 @@ void editor_draw_status_bar(struct AppendBuf *abuf) {
     }
 
     abuf_append(abuf, "\x1b[m", 3);
+    abuf_append(abuf, "\r\n", 2);
 }
 
 void editor_refresh_screen(void) {
@@ -473,7 +474,7 @@ void init_editor(void) {
 
     if (get_window_size(&E.screenrows, &E.screencols) == -1)
         die("get_window_size");
-    E.screenrows -= 1;
+    E.screenrows -= 2;
 }
 
 int main(int argc, char *argv[]) {
