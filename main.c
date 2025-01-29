@@ -448,7 +448,7 @@ void editor_find(void) {
     int saved_coloff = E.coloff;
     int saved_rowoff = E.rowoff;
 
-    char *query = editor_prompt("Search: %s (ESC to cancel)", editor_find_callback);
+    char *query = editor_prompt("Search: %s (Use ESC/Arrows/Enter)", editor_find_callback);
 
     if (query) {
         free(query);
