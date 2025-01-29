@@ -245,6 +245,14 @@ void editor_row_insert_char(Row *row, int at, int c) {
     E.dirty++;
 }
 
+void editor_row_del_char(Row *row, int at) {
+    if (at < 0 || at >= row->size) return;
+    memmove(&row->chars[at], &row->chars[at + 1], row->size - at);
+    row->size--;
+    editor_update_row(row);
+    E.dirty++;
+}
+
 /*** editor operations ***/
 
 void editor_insert_char(int c) {
