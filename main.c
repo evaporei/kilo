@@ -407,7 +407,21 @@ void editor_save(void) {
 /*** find ***/
 
 void editor_find_callback(char *query, int key) {
-    if (key == '\r' || key == '\x1b') return;
+    static int last_match = -1;
+    static int direction = 1;
+
+    if (key == '\r' || key == '\x1b') {
+        last_match = -1;
+        direction = 1;
+        return;
+    } else if (key == ARROW_RIGHT || key == ARROW_DOWN) {
+        direction = 1;
+    } else if (key == ARROW_LEFT || key == ARROW_UP) {
+        direction = -1;
+    } else {
+        last_match = -1;
+        direction = 1;
+    }
 
     for (int i = 0; i < E.numrows; i++) {
         Row *row = &E.row[i];
