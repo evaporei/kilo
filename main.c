@@ -20,8 +20,10 @@
 /*** defines ***/
 
 #define VERSION "0.0.1"
-#define CTRL_KEY(k) ((k) & 0x1f)
 #define KILO_TAB_STOP 8
+#define KILO_QUIT_TIMES 3
+
+#define CTRL_KEY(k) ((k) & 0x1f)
 
 enum EditorKey {
     BACKSPACE = 127,
@@ -498,6 +500,8 @@ void editor_move_cursor(int key) {
 }
 
 void editor_process_keypress(void) {
+    static int quit_times = KILO_QUIT_TIMES;
+
     int c = editor_read_key();
 
     switch (c) {
@@ -506,6 +510,15 @@ void editor_process_keypress(void) {
             break;
 
         case CTRL_KEY('q'):
+            if (E.dirty && quit_times > 0) {
+                editor_set_status_message(
+                    "WARNING!!! File has unsaved changes. "
+                    "Press Ctrl-Q %d more times to quit.",
+                    quit_times
+                );
+                quit_times--;
+                return;
+            }
             write(STDOUT_FILENO, "\x1b[2J", 4);
             write(STDOUT_FILENO, "\x1b[H", 3);
             exit(0);
@@ -558,6 +571,8 @@ void editor_process_keypress(void) {
             editor_insert_char(c);
             break;
     }
+
+    quit_times = KILO_QUIT_TIMES;
 }
 
 /*** init ***/
