@@ -286,11 +286,17 @@ void editor_insert_char(int c) {
 
 void editor_del_char(void) {
     if (E.cy == E.numrows) return;
+    if (E.cx == 0 && E.cy == 0) return;
 
     Row *row = &E.row[E.cy];
     if (E.cx > 0) {
         editor_row_del_char(row, E.cx - 1);
         E.cx--;
+    } else {
+        E.cx = E.row[E.cy - 1].size;
+        editor_row_append_string(&E.row[E.cy - 1], row->chars, row->size);
+        editor_del_row(E.cy);
+        E.cy--;
     }
 }
 
