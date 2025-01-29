@@ -415,7 +415,7 @@ void editor_find(void) {
         char *match = strstr(row->render, query);
         if (match) {
             E.cy = i;
-            E.cx = match - row->render;
+            E.cx = editor_row_rx_to_cx(row, match - row->render);
             E.rowoff = E.numrows;
             break;
         }
