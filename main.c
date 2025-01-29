@@ -286,6 +286,21 @@ void editor_insert_char(int c) {
     E.cx++;
 }
 
+void editor_insert_new_line(void) {
+    if (E.cx == 0) {
+        editor_insert_row(E.cy, "", 0);
+    } else {
+        Row *row = &E.row[E.cy];
+        editor_insert_row(E.cy + 1, &row->chars[E.cx], row->size - E.cx);
+        row = &E.row[E.cy];
+        row->size = E.cx;
+        row->chars[row->size] = '\0';
+        editor_update_row(row);
+    }
+    E.cy++;
+    E.cx = 0;
+}
+
 void editor_del_char(void) {
     if (E.cy == E.numrows) return;
     if (E.cx == 0 && E.cy == 0) return;
