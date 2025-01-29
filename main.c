@@ -542,7 +542,11 @@ char *editor_prompt(char *prompt) {
         editor_refresh_screen();
 
         int c = editor_read_key();
-        if (c == '\r') {
+        if (c == '\x1b') {
+            editor_set_status_message("");
+            free(buf);
+            return NULL;
+        } else if (c == '\r') {
             if (buf_len != 0) {
                 editor_set_status_message("");
                 return buf;
