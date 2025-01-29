@@ -377,7 +377,7 @@ void editor_open(char *filename) {
 
 void editor_save(void) {
     if (E.filename == NULL) {
-        E.filename = editor_prompt("Save as: %s");
+        E.filename = editor_prompt("Save as: %s", NULL);
         if (E.filename == NULL) {
             editor_set_status_message("Save aborted");
             return;
@@ -407,7 +407,7 @@ void editor_save(void) {
 /*** find ***/
 
 void editor_find(void) {
-    char *query = editor_prompt("Search: %s (ESC to cancel)");
+    char *query = editor_prompt("Search: %s (ESC to cancel)", NULL);
     if (query == NULL) return;
 
     for (int i = 0; i < E.numrows; i++) {
