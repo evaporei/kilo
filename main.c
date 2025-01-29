@@ -391,6 +391,26 @@ void editor_save(void) {
     editor_set_status_message("Can't save! I/O error: %s", strerror(errno));
 }
 
+/*** find ***/
+
+void editor_find(void) {
+    char *query = editor_prompt("Search: %s (ESC to cancel)");
+    if (query == NULL) return;
+
+    for (int i = 0; i < E.numrows; i++) {
+        Row *row = &E.row[i];
+        char *match = strstr(row->render, query);
+        if (match) {
+            E.cy = i;
+            E.cx = match - row->render;
+            E.rowoff = E.numrows;
+            break;
+        }
+    }
+
+    free(query);
+}
+
 /*** append buffer ***/
 
 struct AppendBuf {
