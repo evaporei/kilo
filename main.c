@@ -553,10 +553,12 @@ void editor_process_keypress(void) {
                 E.cx = E.row[E.cy].size;
             break;
 
+        case DEL_KEY:
+            editor_move_cursor(ARROW_RIGHT);
+            // fallthrough
         case BACKSPACE:
         case CTRL_KEY('h'):
-        case DEL_KEY:
-            // TODO
+            editor_del_char();
             break;
 
         case PAGE_UP:
