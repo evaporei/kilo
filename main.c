@@ -673,6 +673,10 @@ void editor_process_keypress(void) {
                 E.cx = E.row[E.cy].size;
             break;
 
+        case CTRL_KEY('f'):
+            editor_find();
+            break;
+
         case DEL_KEY:
             editor_move_cursor(ARROW_RIGHT);
             // fallthrough
@@ -743,7 +747,7 @@ int main(int argc, char *argv[]) {
         editor_open(argv[1]);
     }
 
-    editor_set_status_message("HELP: Ctrl-S = save | Ctrl-Q = quit");
+    editor_set_status_message("HELP: Ctrl-S = save | Ctrl-Q = quit | Ctrl-F = find");
 
     while (1) {
         editor_refresh_screen();
