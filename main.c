@@ -569,7 +569,7 @@ void editor_process_keypress(void) {
 
     switch (c) {
         case '\r':
-            // TODO
+            editor_insert_new_line();
             break;
 
         case CTRL_KEY('q'):
