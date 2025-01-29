@@ -218,10 +218,12 @@ void editor_update_row(Row *row) {
     row->rsize = idx;
 }
 
-void editor_append_row(char *s, size_t len) {
-    E.row = realloc(E.row, sizeof(Row) * (E.numrows + 1));
+void editor_insert_row(int at, char *s, size_t len) {
+    if (at < 0 || at > E.numrows) return;
 
-    int at = E.numrows;
+    E.row = realloc(E.row, sizeof(Row) * (E.numrows + 1));
+    memmove(&E.row[at + 1], &E.row[at], sizeof(Row) * (E.numrows - at));
+
     E.row[at].size = len;
     E.row[at].chars = malloc(len + 1);
     memcpy(E.row[at].chars, s, len);
