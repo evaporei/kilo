@@ -196,6 +196,19 @@ int editor_row_cx_to_rx(Row *row, int cx) {
     return rx;
 }
 
+int editor_row_rx_to_cx(Row *row, int rx) {
+    int curr_rx = 0;
+    int cx;
+    for (cx = 0; cx < row->size; cx++) {
+        if (row->chars[cx] == '\t')
+            curr_rx += (KILO_TAB_STOP - 1) - (curr_rx % KILO_TAB_STOP);
+        curr_rx++;
+
+        if (curr_rx > rx) return cx;
+    }
+    return cx;
+}
+
 void editor_update_row(Row *row) {
     int tabs = 0;
 
