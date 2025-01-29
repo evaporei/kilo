@@ -281,7 +281,7 @@ void editor_row_del_char(Row *row, int at) {
 
 void editor_insert_char(int c) {
     if (E.cy == E.numrows)
-        editor_append_row("", 0);
+        editor_insert_row(E.numrows, "", 0);
     editor_row_insert_char(&E.row[E.cy], E.cx, c);
     E.cx++;
 }
@@ -337,7 +337,7 @@ void editor_open(char *filename) {
         while (line_len > 0 && (line[line_len - 1] == '\n' ||
                                 line[line_len - 1] == '\r'))
             line_len--;
-        editor_append_row(line, line_len);
+        editor_insert_row(E.numrows, line, line_len);
     }
 
     free(line);
