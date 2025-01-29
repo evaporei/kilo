@@ -235,6 +235,19 @@ void editor_append_row(char *s, size_t len) {
     E.dirty++;
 }
 
+void editor_free_row(Row *row) {
+    free(row->render);
+    free(row->chars);
+}
+
+void editor_del_row(int at) {
+    if (at < 0 || at >= E.numrows) return;
+    editor_free_row(&E.row[at]);
+    memmove(&E.row[at], &E.row[at + 1], sizeof(Row) * (E.numrows - at - 1));
+    E.numrows--;
+    E.dirty++;
+}
+
 void editor_row_insert_char(Row *row, int at, int c) {
     if (at < 0 || at > row->size) at = row->size;
     row->chars = realloc(row->chars, row->size + 2);
