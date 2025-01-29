@@ -406,9 +406,8 @@ void editor_save(void) {
 
 /*** find ***/
 
-void editor_find(void) {
-    char *query = editor_prompt("Search: %s (ESC to cancel)", NULL);
-    if (query == NULL) return;
+void editor_find_callback(char *query, int key) {
+    if (key == '\r' || key == '\x1b') return;
 
     for (int i = 0; i < E.numrows; i++) {
         Row *row = &E.row[i];
@@ -420,8 +419,13 @@ void editor_find(void) {
             break;
         }
     }
+}
 
-    free(query);
+void editor_find(void) {
+    char *query = editor_prompt("Search: %s (ESC to cancel)", editor_find_callback);
+
+    if (query)
+        free(query);
 }
 
 /*** append buffer ***/
