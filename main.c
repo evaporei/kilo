@@ -262,6 +262,16 @@ void editor_insert_char(int c) {
     E.cx++;
 }
 
+void editor_del_char(void) {
+    if (E.cy == E.numrows) return;
+
+    Row *row = &E.row[E.cy];
+    if (E.cx > 0) {
+        editor_row_del_char(row, E.cx - 1);
+        E.cx--;
+    }
+}
+
 /*** file i/o ***/
 
 char *editor_rows_to_string(int *buf_len) {
