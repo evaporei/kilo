@@ -69,6 +69,7 @@ struct EditorConfig E;
 
 void editor_set_status_message(const char *fmt, ...);
 void editor_refresh_screen(void);
+char *editor_prompt(char *prompt);
 
 /*** terminal ***/
 
@@ -362,7 +363,9 @@ void editor_open(char *filename) {
 }
 
 void editor_save(void) {
-    if (E.filename == NULL) return;
+    if (E.filename == NULL) {
+        E.filename = editor_prompt("Save as: %s");
+    }
 
     int len;
     char *buf = editor_rows_to_string(&len);
