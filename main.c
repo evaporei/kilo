@@ -652,7 +652,8 @@ void editor_draw_status_bar(struct AppendBuf *abuf) {
     int len = snprintf(status, sizeof(status), "%.20s - %d lines %s",
             E.filename ? E.filename : "[No Name]", E.numrows,
             E.dirty ? "(modified)" : "");
-    int rlen = snprintf(rstatus, sizeof(rstatus), "%d/%d", E.cy + 1, E.numrows);
+    int rlen = snprintf(rstatus, sizeof(rstatus), "%s | %d/%d",
+            E.syntax ? E.syntax->filetype : "no ft", E.cy + 1, E.numrows);
     if (len > E.screencols) len = E.screencols;
     abuf_append(abuf, status, len);
 
