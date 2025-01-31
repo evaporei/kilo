@@ -469,6 +469,8 @@ void editor_find_callback(char *query, int key) {
             E.cy = current;
             E.cx = editor_row_rx_to_cx(row, match - row->render);
             E.rowoff = E.numrows;
+
+            memset(&row->hl[match - row->render], HL_MATCH, strlen(query));
             break;
         }
     }
