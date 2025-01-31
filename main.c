@@ -250,6 +250,8 @@ void editor_update_row(Row *row) {
     }
     row->render[idx] = '\0';
     row->rsize = idx;
+
+    editor_update_syntax(row);
 }
 
 void editor_insert_row(int at, char *s, size_t len) {
