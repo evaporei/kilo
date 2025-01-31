@@ -75,6 +75,7 @@ struct EditorConfig {
     char *filename;
     char statusmsg[80];
     time_t statusmsg_time;
+    EditorSyntax *syntax;
     struct termios orig_termios;
 };
 
@@ -879,6 +880,7 @@ void init_editor(void) {
     E.filename = NULL;
     E.statusmsg[0] = '\0';
     E.statusmsg_time = 0;
+    E.syntax = NULL;
 
     if (get_window_size(&E.screenrows, &E.screencols) == -1)
         die("get_window_size");
