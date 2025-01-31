@@ -270,6 +270,11 @@ void editor_select_syntax_highlight(void) {
             if ((is_ext && ext && !strcmp(ext, s->filematch[i])) ||
                 (!is_ext && strstr(E.filename, s->filematch[i]))) {
                 E.syntax = s;
+
+                for (int filerow = 0; filerow < E.numrows; filerow++) {
+                    editor_update_syntax(&E.row[filerow]);
+                }
+
                 return;
             }
             i++;
