@@ -45,6 +45,7 @@ typedef struct Row {
     int rsize;
     char *chars;
     char *render;
+    unsigned char *hl;
 } Row;
 
 struct EditorConfig {
@@ -246,6 +247,7 @@ void editor_insert_row(int at, char *s, size_t len) {
 
     E.row[at].rsize = 0;
     E.row[at].render = NULL;
+    E.row[at].hl = NULL;
     editor_update_row(&E.row[at]);
 
     E.numrows++;
@@ -255,6 +257,7 @@ void editor_insert_row(int at, char *s, size_t len) {
 void editor_free_row(Row *row) {
     free(row->render);
     free(row->chars);
+    free(row->hl);
 }
 
 void editor_del_row(int at) {
