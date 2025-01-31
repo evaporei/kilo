@@ -562,15 +562,22 @@ void editor_draw_rows(struct AppendBuf *abuf) {
             if (len > E.screencols) len = E.screencols;
             char *c = &E.row[filerow].render[E.coloff];
             unsigned char *hl = &E.row[filerow].hl[E.coloff];
+            int curr_color = -1;
             for (int j = 0; j < len; j++) {
                 if (hl[j] == HL_NORMAL) {
-                    abuf_append(abuf, "\x1b[39m", 5);
+                    if (curr_color != -1) {
+                        abuf_append(abuf, "\x1b[39m", 5);
+                        curr_color = -1;
+                    }
                     abuf_append(abuf, &c[j], 1);
                 } else {
                     int color = editor_syntax_to_color(hl[j]);
-                    char buf[16];
-                    int color_len = snprintf(buf, sizeof(buf), "\x1b[%dm", color);
-                    abuf_append(abuf, buf, color_len);
+                    if (color != curr_color) {
+                        curr_color = color;
+                        char buf[16];
+                        int color_len = snprintf(buf, sizeof(buf), "\x1b[%dm", color);
+                        abuf_append(abuf, buf, color_len);
+                    }
                     abuf_append(abuf, &c[j], 1);
                 }
             }
