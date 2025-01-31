@@ -193,6 +193,10 @@ int get_window_size(int *rows, int *cols) {
 
 /*** syntax highlighting ***/
 
+int is_separator(int c) {
+    return isspace(c) || c == '\0' || strchr(",.()+-/*=~%<>[];", c) != NULL;
+}
+
 void editor_update_syntax(Row *row) {
     row->hl = realloc(row->hl, row->rsize);
     memset(row->hl, HL_NORMAL, row->rsize);
