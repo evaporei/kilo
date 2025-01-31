@@ -203,6 +203,13 @@ void editor_update_syntax(Row *row) {
     }
 }
 
+int editor_syntax_to_color(int hl) {
+    switch (hl) {
+        case HL_NUMBER: return 31;
+        default: return 37;
+    }
+}
+
 /*** row operations ***/
 
 int editor_row_cx_to_rx(Row *row, int cx) {
