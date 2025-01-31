@@ -38,6 +38,11 @@ enum EditorKey {
     PAGE_DOWN,
 };
 
+enum EditorHighlight {
+    HL_NORMAL = 0,
+    HL_NUMBER
+};
+
 /*** data ***/
 
 typedef struct Row {
