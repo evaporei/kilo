@@ -80,6 +80,20 @@ struct EditorConfig {
 
 struct EditorConfig E;
 
+/*** filetypes ***/
+
+char *C_HL_extensions[] = { ".c", ".h", ".cpp", NULL };
+
+EditorSyntax HLDB[] = {
+    {
+        "c",
+        C_HL_extensions,
+        HL_HIGHLIGHT_NUMBERS
+    },
+};
+
+#define HLDB_ENTRIES (sizeof(HLDB) / sizeof(HLDB[0]))
+
 /*** prototypes ***/
 
 void editor_set_status_message(const char *fmt, ...);
