@@ -44,7 +44,15 @@ enum EditorHighlight {
     HL_MATCH
 };
 
+#define HL_HIGHLIGHT_NUMBERS (1 << 0)
+
 /*** data ***/
+
+typedef struct EditorSyntax {
+    char *filetype;
+    char **filematch;
+    int flags;
+} EditorSyntax;
 
 typedef struct Row {
     int size;
