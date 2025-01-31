@@ -530,7 +530,16 @@ void editor_draw_rows(struct AppendBuf *abuf) {
             int len = E.row[filerow].rsize - E.coloff;
             if (len < 0) len = 0;
             if (len > E.screencols) len = E.screencols;
-            abuf_append(abuf, &E.row[filerow].render[E.coloff], len);
+            char *c = &E.row[filerow].render[E.coloff];
+            for (int j = 0; j < len; j++) {
+                if (isdigit(c[j])) {
+                    abuf_append(abuf, "\x1b[31m", 5);
+                    abuf_append(abuf, &c[j], 1);
+                    abuf_append(abuf, "\x1b[39m", 5);
+                } else {
+                    abuf_append(abuf, &c[j], 1);
+                }
+            }
         }
 
         abuf_append(abuf, "\x1b[K", 3);
