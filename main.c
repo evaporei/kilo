@@ -733,6 +733,11 @@ void editor_draw_rows(struct AppendBuf *abuf) {
                     abuf_append(abuf, "\x1b[7m", 4);
                     abuf_append(abuf, &sym, 1);
                     abuf_append(abuf, "\x1b[m", 3);
+                    if (curr_color != -1) {
+                        char buf[16];
+                        int c_len = snprintf(buf, sizeof(buf), "\x1b[%dm", curr_color);
+                        abuf_append(abuf, buf, c_len);
+                    }
                 } else if (hl[j] == HL_NORMAL) {
                     if (curr_color != -1) {
                         abuf_append(abuf, "\x1b[39m", 5);
