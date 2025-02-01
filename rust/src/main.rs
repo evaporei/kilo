@@ -273,7 +273,7 @@ impl Editor {
                 self.cursor.x = 0;
             }
             Ok(Key::End) => {
-                self.cursor.y = self.screen.cols - 1;
+                self.cursor.x = self.screen.cols - 1;
             }
             Ok(Key::PageUp) | Ok(Key::PageDown) => {
                 let dir = if k == Ok(Key::PageUp) {
