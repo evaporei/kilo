@@ -446,6 +446,7 @@ void editor_insert_row(int at, char *s, size_t len) {
 
     E.row = realloc(E.row, sizeof(Row) * (E.numrows + 1));
     memmove(&E.row[at + 1], &E.row[at], sizeof(Row) * (E.numrows - at));
+    for (int j = at + 1; j <= E.numrows; j++) E.row[j].idx++;
 
     E.row[at].idx = at;
 
@@ -474,6 +475,7 @@ void editor_del_row(int at) {
     if (at < 0 || at >= E.numrows) return;
     editor_free_row(&E.row[at]);
     memmove(&E.row[at], &E.row[at + 1], sizeof(Row) * (E.numrows - at - 1));
+    for (int j = at; j < E.numrows - 1; j++) E.row[j].idx--;
     E.numrows--;
     E.dirty++;
 }
