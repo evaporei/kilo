@@ -88,17 +88,22 @@ static mut ORIG_TERMIOS: libc::termios = unsafe { mem::zeroed() };
 
 /*** terminal ***/
 
-fn die(s: &str) -> ! {
-    let c_str = CString::new(s).unwrap();
+fn die(fn_name: &str) -> ! {
+    let c_str = CString::new("\x1b[2J").unwrap();
+    unsafe { libc::write(STDOUT_FILENO, mem::transmute(c_str.as_ptr()), 4) };
+    let c_str = CString::new("\x1b[H").unwrap();
+    unsafe { libc::write(STDOUT_FILENO, mem::transmute(c_str.as_ptr()), 3) };
+
+    let c_str = CString::new(fn_name).unwrap();
     unsafe {
         libc::perror(c_str.as_ptr() as *const c_char);
-        libc::exit(1);
+        std::process::exit(1);
     }
 }
 
 extern "C" fn disable_raw_mode() {
     if unsafe { libc::tcsetattr(STDIN_FILENO, libc::TCSAFLUSH, &raw mut ORIG_TERMIOS) } != 0 {
-        die("tcgetattr");
+        die("tcsetattr");
     }
 }
 
@@ -119,7 +124,7 @@ fn enable_raw_mode() {
     raw.c_cc[VTIME] = 1;
 
     if unsafe { libc::tcsetattr(libc::STDIN_FILENO, libc::TCSAFLUSH, &mut raw) } != 0 {
-        die("tcgetattr");
+        die("tcsetattr");
     }
 }
 
@@ -262,7 +267,7 @@ impl Editor {
             Err(c) if c as c_char == ctrl_key('q') => {
                 let _ = io::stdout().lock().write(b"\x1b[2J");
                 let _ = io::stdout().lock().write(b"\x1b[H");
-                unsafe { libc::exit(0) };
+                std::process::exit(0);
             }
             Ok(Key::Home) => {
                 self.cursor.x = 0;
