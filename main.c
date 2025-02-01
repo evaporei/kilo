@@ -54,6 +54,7 @@ enum EditorHighlight {
 typedef struct EditorSyntax {
     char *filetype;
     char **filematch;
+    char *singleline_comment_start;
     int flags;
 } EditorSyntax;
 
@@ -92,6 +93,7 @@ EditorSyntax HLDB[] = {
     {
         "c",
         C_HL_extensions,
+        "//",
         HL_HIGHLIGHT_NUMBERS | HL_HIGHLIGHT_STRINGS
     },
 };
