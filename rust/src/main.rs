@@ -288,7 +288,6 @@ impl Editor {
             Ok(Key::ArrowLeft) | Ok(Key::ArrowUp) | Ok(Key::ArrowDown) | Ok(Key::ArrowRight) => {
                 self.move_cursor(k.unwrap())
             }
-            // Key::HomeKey =>
             _ => {}
         }
     }
@@ -327,20 +326,5 @@ fn main() {
     loop {
         editor.refresh_screen();
         editor.process_keypress();
-        let mut c: c_char = 0;
-        if unsafe { libc::read(STDIN_FILENO, mem::transmute(&mut c), 1) } == -1
-            && errno() != libc::EAGAIN
-        {
-            die("read");
-        }
-        if unsafe { libc::iscntrl(c.into()) } != 0 {
-            print!("{c}\r\n");
-        } else {
-            print!("{c} ('{}')\r\n", c as u8 as char);
-        }
-
-        if c == ctrl_key('q') {
-            break;
-        }
     }
 }
