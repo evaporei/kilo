@@ -728,7 +728,12 @@ void editor_draw_rows(struct AppendBuf *abuf) {
             unsigned char *hl = &E.row[filerow].hl[E.coloff];
             int curr_color = -1;
             for (int j = 0; j < len; j++) {
-                if (hl[j] == HL_NORMAL) {
+                if (iscntrl(c[j])) {
+                    char sym = (c[j] <= 26) ? '@' + c[j] : '?';
+                    abuf_append(abuf, "\x1b[7m", 4);
+                    abuf_append(abuf, &sym, 1);
+                    abuf_append(abuf, "\x1b[m", 3);
+                } else if (hl[j] == HL_NORMAL) {
                     if (curr_color != -1) {
                         abuf_append(abuf, "\x1b[39m", 5);
                         curr_color = -1;
