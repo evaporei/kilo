@@ -241,6 +241,8 @@ void editor_update_syntax(Row *row) {
 
     if (E.syntax == NULL) return;
 
+    char **keywords = E.syntax->keywords;
+
     char *scs = E.syntax->singleline_comment_start;
     int scs_len = scs ? strlen(scs) : 0;
 
@@ -286,6 +288,27 @@ void editor_update_syntax(Row *row) {
                     (c == '.' && prev_hl == HL_NUMBER)) {
                 row->hl[i] = HL_NUMBER;
                 i++;
+                prev_sep = 0;
+                continue;
+            }
+        }
+
+        if (prev_sep) {
+            int j;
+            for (j = 0; keywords[j]; j++) {
+                int k_len = strlen(keywords[j]);
+                int kw2 = keywords[j][k_len - 1] == '|';
+                if (kw2) k_len--;
+
+                if (!strncmp(&row->render[i], keywords[j], k_len) &&
+                    is_separator(row->render[i + k_len])) {
+                    memset(&row->hl[i], kw2 ? HL_KEYWORD2 : HL_KEYWORD1, k_len);
+                    i += k_len;
+                    break;
+                }
+            }
+
+            if (keywords[j] != NULL) {
                 prev_sep = 0;
                 continue;
             }
