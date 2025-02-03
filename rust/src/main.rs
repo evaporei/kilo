@@ -2,7 +2,7 @@ use libc::{STDIN_FILENO, STDOUT_FILENO};
 use std::ffi::CString;
 use std::io::{self, Write};
 use std::mem;
-use std::os::raw::{c_char, c_void};
+use std::os::raw::c_char;
 
 /*** "defines" ***/
 
@@ -32,8 +32,8 @@ fn errno() -> i32 {
 }
 
 fn get_cursor_position() -> Option<Screen> {
-    let c_str = CString::new("\x1b[6n").unwrap();
-    if unsafe { libc::write(STDOUT_FILENO, c_str.as_ptr() as *const c_void, 4) } != 4 {
+    let mut stdout = io::stdout();
+    if stdout.write(b"\x1b[6n").is_err() || stdout.flush().is_err() {
         return None;
     }
     print!("\r\n");
@@ -68,8 +68,8 @@ fn get_window_size() -> Option<Screen> {
     let mut ws: libc::winsize = unsafe { mem::zeroed() };
 
     if unsafe { libc::ioctl(STDOUT_FILENO, libc::TIOCGWINSZ, &mut ws) } == -1 || ws.ws_col == 0 {
-        let c_str = CString::new("\x1b[999C\x1b[999B").unwrap();
-        if unsafe { libc::write(STDOUT_FILENO, c_str.as_ptr() as *const c_void, 12) } != 12 {
+        let mut stdout = io::stdout();
+        if stdout.write(b"\x1b[999C\x1b[999B").is_err() || stdout.flush().is_err() {
             return None;
         }
 
@@ -89,10 +89,10 @@ static mut ORIG_TERMIOS: libc::termios = unsafe { mem::zeroed() };
 /*** terminal ***/
 
 fn die(fn_name: &str) -> ! {
-    let c_str = CString::new("\x1b[2J").unwrap();
-    unsafe { libc::write(STDOUT_FILENO, mem::transmute(c_str.as_ptr()), 4) };
-    let c_str = CString::new("\x1b[H").unwrap();
-    unsafe { libc::write(STDOUT_FILENO, mem::transmute(c_str.as_ptr()), 3) };
+    let mut stdout = io::stdout();
+    let _ = stdout.write(b"\x1b[2J");
+    let _ = stdout.write(b"\x1b[H");
+    let _ = stdout.flush();
 
     let c_str = CString::new(fn_name).unwrap();
     unsafe {
@@ -193,14 +193,10 @@ impl Editor {
         buf.push_str(&format!("\x1b[{};{}H", self.cursor.y, self.cursor.x));
 
         buf.push_str("\x1b[?25h");
-        let c_str = CString::new(buf).unwrap();
-        unsafe {
-            libc::write(
-                STDOUT_FILENO,
-                mem::transmute(c_str.as_ptr()),
-                c_str.as_bytes().len(),
-            );
-        }
+
+        let mut stdout = io::stdout();
+        let _ = stdout.write(buf.as_bytes());
+        let _ = stdout.flush();
     }
 
     fn read_key(&mut self) -> Result<Key, char> {
@@ -265,8 +261,10 @@ impl Editor {
 
         match k {
             Err(c) if c as c_char == ctrl_key('q') => {
-                let _ = io::stdout().lock().write(b"\x1b[2J");
-                let _ = io::stdout().lock().write(b"\x1b[H");
+                let mut stdout = io::stdout();
+                let _ = stdout.write(b"\x1b[2J");
+                let _ = stdout.write(b"\x1b[H");
+                let _ = stdout.flush();
                 std::process::exit(0);
             }
             Ok(Key::Home) => {
