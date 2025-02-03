@@ -37,6 +37,12 @@ fn stdout_write(b: &[u8]) -> io::Result<()> {
     stdout.flush()
 }
 
+fn stdin_read_byte() -> io::Result<u8> {
+    let mut b = [0; 1];
+    io::stdin().read_exact(&mut b)?;
+    Ok(b[0])
+}
+
 fn get_cursor_position() -> Option<Screen> {
     if stdout_write(b"\x1b[6n").is_err() {
         return None;
@@ -46,11 +52,10 @@ fn get_cursor_position() -> Option<Screen> {
     let mut buf: [c_char; 32] = [0; 32];
     let mut i = 0;
     while i < mem::size_of::<[c_char; 32]>() - 1 {
-        let mut b = [0; 1];
-        if io::stdin().read_exact(&mut b).is_err() {
-            break;
-        }
-        b[i] = b[0];
+        buf[i] = match stdin_read_byte() {
+            Ok(b) => b as c_char,
+            Err(_) => break,
+        };
         if buf[i] as u8 == b'R' {
             break;
         }
@@ -216,23 +221,15 @@ impl Editor {
             }
         }
         if c as u8 == b'\x1b' {
-            let mut first = [0; 1];
-            let mut second = [0; 1];
-            let mut third = [0; 1];
-            if io::stdin().read_exact(&mut first).is_err() {
-                return Err('\x1b');
-            }
-            if io::stdin().read_exact(&mut second).is_err() {
-                return Err('\x1b');
-            }
+            let first = stdin_read_byte().map_err(|_| '\x1b')?;
+            let second = stdin_read_byte().map_err(|_| '\x1b')?;
 
-            if first[0] == b'[' {
-                if second[0] >= b'0' && second[0] <= b'9' {
-                    if io::stdin().read_exact(&mut third).is_err() {
-                        return Err('\x1b');
-                    }
-                    if third[0] == b'~' {
-                        match second[0] {
+            if first == b'[' {
+                if second >= b'0' && second <= b'9' {
+                    let third = stdin_read_byte().map_err(|_| '\x1b')?;
+
+                    if third == b'~' {
+                        match second {
                             b'1' | b'7' => return Ok(Key::Home),
                             b'4' | b'8' => return Ok(Key::End),
                             b'3' => return Ok(Key::Del),
@@ -243,7 +240,7 @@ impl Editor {
                     }
                 }
 
-                match second[0] {
+                match second {
                     b'A' => return Ok(Key::ArrowUp),
                     b'B' => return Ok(Key::ArrowDown),
                     b'C' => return Ok(Key::ArrowRight),
@@ -252,8 +249,8 @@ impl Editor {
                     b'F' => return Ok(Key::End),
                     _ => {}
                 }
-            } else if first[0] == b'O' {
-                match second[0] {
+            } else if first == b'O' {
+                match second {
                     b'H' => return Ok(Key::Home),
                     b'F' => return Ok(Key::End),
                     _ => {}
