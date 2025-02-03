@@ -209,18 +209,16 @@ impl Editor {
     }
 
     fn read_key(&mut self) -> Result<Key, char> {
-        let mut n_read = 0;
-        let mut c: c_char = 0;
-        while n_read != 1 {
-            // left libc::read because there's no easy way to catch
-            // EAGAIN in Rust's std (there's a way, but it's convoluted)
-            n_read = unsafe { libc::read(STDIN_FILENO, mem::transmute(&mut c), 1) } as i32;
-
-            if n_read == -1 && errno() != libc::EAGAIN {
-                die("read");
+        let c = loop {
+            match stdin_read_byte() {
+                Ok(b) => break b,
+                // technically EAGAIN doesn't happen in
+                // raw mode...
+                Err(_) if errno() != libc::EAGAIN => die("read"),
+                _ => {}
             }
-        }
-        if c as u8 == b'\x1b' {
+        };
+        if c == b'\x1b' {
             let first = stdin_read_byte().map_err(|_| '\x1b')?;
             let second = stdin_read_byte().map_err(|_| '\x1b')?;
 
@@ -258,7 +256,7 @@ impl Editor {
             }
             return Err('\x1b');
         }
-        Err(c as u8 as char)
+        Err(c as char)
     }
 
     fn process_keypress(&mut self) {
