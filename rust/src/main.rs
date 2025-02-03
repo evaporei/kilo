@@ -1,6 +1,6 @@
 use libc::{STDIN_FILENO, STDOUT_FILENO};
 use std::ffi::CString;
-use std::io::{self, Write};
+use std::io::{self, Read, Write};
 use std::mem;
 use std::os::raw::c_char;
 
@@ -46,9 +46,11 @@ fn get_cursor_position() -> Option<Screen> {
     let mut buf: [c_char; 32] = [0; 32];
     let mut i = 0;
     while i < mem::size_of::<[c_char; 32]>() - 1 {
-        if unsafe { libc::read(STDIN_FILENO, mem::transmute(&mut buf[i]), 1) } != 1 {
+        let mut b = [0; 1];
+        if io::stdin().read_exact(&mut b).is_err() {
             break;
         }
+        b[i] = b[0];
         if buf[i] as u8 == b'R' {
             break;
         }
@@ -62,6 +64,8 @@ fn get_cursor_position() -> Option<Screen> {
     let c_str = CString::new("%d;%d").unwrap();
     let mut rows = 0;
     let mut cols = 0;
+    // left scanf because it's simpler/smaller than
+    // the Rust alternative
     if unsafe { libc::sscanf(&buf[2], c_str.as_ptr(), &mut rows, &mut cols) } == 2 {
         return Some(Screen { rows, cols });
     }
@@ -203,6 +207,8 @@ impl Editor {
         let mut n_read = 0;
         let mut c: c_char = 0;
         while n_read != 1 {
+            // left libc::read because there's no easy way to catch
+            // EAGAIN in Rust's std (there's a way, but it's convoluted)
             n_read = unsafe { libc::read(STDIN_FILENO, mem::transmute(&mut c), 1) } as i32;
 
             if n_read == -1 && errno() != libc::EAGAIN {
@@ -210,21 +216,23 @@ impl Editor {
             }
         }
         if c as u8 == b'\x1b' {
-            let mut seq = [0, 0, 0];
-            if unsafe { libc::read(STDIN_FILENO, mem::transmute(&mut seq[0]), 1) } != 1 {
+            let mut first = [0; 1];
+            let mut second = [0; 1];
+            let mut third = [0; 1];
+            if io::stdin().read_exact(&mut first).is_err() {
                 return Err('\x1b');
             }
-            if unsafe { libc::read(STDIN_FILENO, mem::transmute(&mut seq[1]), 1) } != 1 {
+            if io::stdin().read_exact(&mut second).is_err() {
                 return Err('\x1b');
             }
 
-            if seq[0] == b'[' {
-                if seq[1] >= b'0' && seq[1] <= b'9' {
-                    if unsafe { libc::read(STDIN_FILENO, mem::transmute(&mut seq[2]), 1) } != 1 {
+            if first[0] == b'[' {
+                if second[0] >= b'0' && second[0] <= b'9' {
+                    if io::stdin().read_exact(&mut third).is_err() {
                         return Err('\x1b');
                     }
-                    if seq[2] == b'~' {
-                        match seq[1] {
+                    if third[0] == b'~' {
+                        match second[0] {
                             b'1' | b'7' => return Ok(Key::Home),
                             b'4' | b'8' => return Ok(Key::End),
                             b'3' => return Ok(Key::Del),
@@ -235,7 +243,7 @@ impl Editor {
                     }
                 }
 
-                match seq[1] {
+                match second[0] {
                     b'A' => return Ok(Key::ArrowUp),
                     b'B' => return Ok(Key::ArrowDown),
                     b'C' => return Ok(Key::ArrowRight),
@@ -244,8 +252,8 @@ impl Editor {
                     b'F' => return Ok(Key::End),
                     _ => {}
                 }
-            } else if seq[0] == b'O' {
-                match seq[1] {
+            } else if first[0] == b'O' {
+                match second[0] {
                     b'H' => return Ok(Key::Home),
                     b'F' => return Ok(Key::End),
                     _ => {}
