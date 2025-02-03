@@ -31,9 +31,14 @@ fn errno() -> i32 {
     std::io::Error::last_os_error().raw_os_error().unwrap()
 }
 
-fn get_cursor_position() -> Option<Screen> {
+fn stdout_write(b: &[u8]) -> io::Result<()> {
     let mut stdout = io::stdout();
-    if stdout.write(b"\x1b[6n").is_err() || stdout.flush().is_err() {
+    stdout.write(b)?;
+    stdout.flush()
+}
+
+fn get_cursor_position() -> Option<Screen> {
+    if stdout_write(b"\x1b[6n").is_err() {
         return None;
     }
     print!("\r\n");
@@ -68,8 +73,7 @@ fn get_window_size() -> Option<Screen> {
     let mut ws: libc::winsize = unsafe { mem::zeroed() };
 
     if unsafe { libc::ioctl(STDOUT_FILENO, libc::TIOCGWINSZ, &mut ws) } == -1 || ws.ws_col == 0 {
-        let mut stdout = io::stdout();
-        if stdout.write(b"\x1b[999C\x1b[999B").is_err() || stdout.flush().is_err() {
+        if stdout_write(b"\x1b[999C\x1b[999B").is_err() {
             return None;
         }
 
@@ -89,10 +93,8 @@ static mut ORIG_TERMIOS: libc::termios = unsafe { mem::zeroed() };
 /*** terminal ***/
 
 fn die(fn_name: &str) -> ! {
-    let mut stdout = io::stdout();
-    let _ = stdout.write(b"\x1b[2J");
-    let _ = stdout.write(b"\x1b[H");
-    let _ = stdout.flush();
+    let _ = stdout_write(b"\x1b[2J");
+    let _ = stdout_write(b"\x1b[H");
 
     let c_str = CString::new(fn_name).unwrap();
     unsafe {
@@ -194,9 +196,7 @@ impl Editor {
 
         buf.push_str("\x1b[?25h");
 
-        let mut stdout = io::stdout();
-        let _ = stdout.write(buf.as_bytes());
-        let _ = stdout.flush();
+        let _ = stdout_write(buf.as_bytes());
     }
 
     fn read_key(&mut self) -> Result<Key, char> {
@@ -261,10 +261,8 @@ impl Editor {
 
         match k {
             Err(c) if c as c_char == ctrl_key('q') => {
-                let mut stdout = io::stdout();
-                let _ = stdout.write(b"\x1b[2J");
-                let _ = stdout.write(b"\x1b[H");
-                let _ = stdout.flush();
+                let _ = stdout_write(b"\x1b[2J");
+                let _ = stdout_write(b"\x1b[H");
                 std::process::exit(0);
             }
             Ok(Key::Home) => {
