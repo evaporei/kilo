@@ -44,9 +44,7 @@ fn stdin_read_byte() -> io::Result<u8> {
 }
 
 fn get_cursor_position() -> Option<Screen> {
-    if stdout_write(b"\x1b[6n").is_err() {
-        return None;
-    }
+    stdout_write(b"\x1b[6n").ok()?;
     print!("\r\n");
 
     let mut buf: [c_char; 32] = [0; 32];
@@ -82,9 +80,7 @@ fn get_window_size() -> Option<Screen> {
     let mut ws: libc::winsize = unsafe { mem::zeroed() };
 
     if unsafe { libc::ioctl(STDOUT_FILENO, libc::TIOCGWINSZ, &mut ws) } == -1 || ws.ws_col == 0 {
-        if stdout_write(b"\x1b[999C\x1b[999B").is_err() {
-            return None;
-        }
+        stdout_write(b"\x1b[999C\x1b[999B").ok()?;
 
         return get_cursor_position();
     }
