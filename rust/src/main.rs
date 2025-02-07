@@ -179,6 +179,26 @@ struct Row {
     render: String,
 }
 
+impl Row {
+    // perhaps move this from here later
+    fn update_render(&mut self) {
+        let tab_count = self.chars.chars().filter(|&c| c == '\t').count();
+        let estimated_size = self.chars.len() + tab_count * (TAB_STOP - 1);
+
+        let mut render = String::with_capacity(estimated_size);
+        for c in self.chars.chars() {
+            if c == '\t' {
+                let spaces_to_add = TAB_STOP - (render.len() % TAB_STOP);
+                render.extend(std::iter::repeat(' ').take(spaces_to_add));
+            } else {
+                render.push(c);
+            }
+        }
+
+        self.render = render;
+    }
+}
+
 use std::fs::File;
 use std::io::BufRead;
 use std::path::Path;
@@ -200,9 +220,13 @@ impl Editor {
             Some(f) => read_lines(f)
                 .unwrap_or_else(|_| die("fopen"))
                 .map(Result::unwrap)
-                .map(|chars| Row {
-                    render: chars.clone(),
-                    chars,
+                .map(|chars| {
+                    let mut row = Row {
+                        render: "".into(),
+                        chars,
+                    };
+                    row.update_render();
+                    row
                 })
                 .collect(),
             None => vec![],
