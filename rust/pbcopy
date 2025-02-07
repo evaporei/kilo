@@ -259,7 +259,7 @@ impl Editor {
         for y in 0..self.screen.rows {
             let file_row = y + self.offset.row;
             if file_row >= self.rows.len() {
-                if self.rows.len() == 0 && y == self.screen.rows / 3 {
+                if y == self.screen.rows / 3 {
                     let welcome = format!("Kilo editor -- version {VERSION}");
                     let len = std::cmp::min(welcome.len(), self.screen.cols);
                     let mut padding = (self.screen.cols - len) / 2;
