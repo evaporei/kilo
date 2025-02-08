@@ -224,7 +224,8 @@ where
 impl Editor {
     fn new(filename: Option<String>) -> Self {
         let cursor = Cursor::default();
-        let screen = get_window_size().unwrap_or_else(|| die("get_window_size"));
+        let mut screen = get_window_size().unwrap_or_else(|| die("get_window_size"));
+        screen.rows -= 2;
 
         let rows = match &filename {
             Some(f) => read_lines(f)
