@@ -179,7 +179,7 @@ struct Editor {
     screen: Screen,
     offset: Offset,
     rows: Vec<Row>,
-    filename: Option<String>,
+    file_name: Option<String>,
     statusmsg: StatusMsg,
 }
 
@@ -246,7 +246,7 @@ impl Editor {
         Self {
             cursor,
             screen,
-            filename,
+            file_name: filename,
             rows,
             ..Self::default()
         }
@@ -336,7 +336,7 @@ impl Editor {
     fn draw_status_bar(&mut self, buf: &mut String) {
         buf.push_str("\x1b[7m");
 
-        let filename = self.filename.as_deref().unwrap_or("[No Name]");
+        let filename = self.file_name.as_deref().unwrap_or("[No Name]");
         let mut status = format!("{filename:.20} - {} lines", self.rows.len());
 
         let mut len = status.len();
