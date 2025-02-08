@@ -175,7 +175,7 @@ struct Editor {
     cursor: Cursor,
     // cursor.x  => index into row[at].chars
     // editor.rx => index into row[at].render
-    rx: usize,
+    render_x: usize,
     screen: Screen,
     offset: Offset,
     rows: Vec<Row>,
@@ -265,10 +265,10 @@ impl Editor {
     }
 
     fn scroll(&mut self) {
-        self.rx = 0;
+        self.render_x = 0;
 
         if self.cursor.y < self.rows.len() {
-            self.rx = self.row_cx_to_rx();
+            self.render_x = self.row_cx_to_rx();
         }
 
         if self.cursor.y < self.offset.row {
@@ -278,11 +278,11 @@ impl Editor {
             self.offset.row = self.cursor.y - self.screen.rows + 1;
         }
 
-        if self.rx < self.offset.col {
-            self.offset.col = self.rx;
+        if self.render_x < self.offset.col {
+            self.offset.col = self.render_x;
         }
-        if self.rx >= self.offset.col + self.screen.cols {
-            self.offset.col = self.rx - self.screen.cols + 1;
+        if self.render_x >= self.offset.col + self.screen.cols {
+            self.offset.col = self.render_x - self.screen.cols + 1;
         }
     }
 
@@ -389,7 +389,7 @@ impl Editor {
         buf.push_str(&format!(
             "\x1b[{};{}H",
             self.cursor.y - self.offset.row + 1,
-            self.rx - self.offset.col + 1
+            self.render_x - self.offset.col + 1
         ));
 
         buf.push_str("\x1b[?25h");
