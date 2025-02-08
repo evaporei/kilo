@@ -180,7 +180,7 @@ struct Editor {
     offset: Offset,
     rows: Vec<Row>,
     file_name: Option<String>,
-    statusmsg: StatusMsg,
+    status_msg: StatusMsg,
 }
 
 #[derive(Debug)]
@@ -287,8 +287,8 @@ impl Editor {
     }
 
     fn set_status_message(&mut self, msg: String) {
-        self.statusmsg.msg = msg;
-        self.statusmsg.time = SystemTime::now();
+        self.status_msg.msg = msg;
+        self.status_msg.time = SystemTime::now();
     }
 
     fn draw_rows(&mut self, buf: &mut String) {
@@ -364,11 +364,11 @@ impl Editor {
     fn draw_message_bar(&self, buf: &mut String) {
         buf.push_str("\x1b[K");
 
-        let msg_len = std::cmp::min(self.statusmsg.msg.len(), self.screen.cols);
-        let elapsed = self.statusmsg.time.elapsed().unwrap().as_secs();
+        let msg_len = std::cmp::min(self.status_msg.msg.len(), self.screen.cols);
+        let elapsed = self.status_msg.time.elapsed().unwrap().as_secs();
 
         if elapsed < 5 {
-            for c in self.statusmsg.msg.bytes().take(msg_len) {
+            for c in self.status_msg.msg.bytes().take(msg_len) {
                 buf.push(c as char);
             }
         }
