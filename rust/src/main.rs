@@ -3,6 +3,7 @@ use std::ffi::CString;
 use std::io::{self, Read, Write};
 use std::mem;
 use std::os::raw::c_char;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 /*** "defines" ***/
 
@@ -154,10 +155,19 @@ struct Offset {
     col: usize,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 struct StatusMsg {
     msg: String,
-    _time: u128,
+    time: SystemTime,
+}
+
+impl Default for StatusMsg {
+    fn default() -> Self {
+        StatusMsg {
+            msg: String::new(),
+            time: UNIX_EPOCH,
+        }
+    }
 }
 
 #[derive(Debug, Default)]
@@ -241,9 +251,9 @@ impl Editor {
         }
     }
 
-    fn row_cx_to_rx(&self, cursor_y: usize) -> usize {
+    fn row_cx_to_rx(&self) -> usize {
         let mut rx = 0;
-        let row = &self.rows[cursor_y];
+        let row = &self.rows[self.cursor.y];
         for i in 0..self.cursor.x {
             if row.chars.bytes().nth(i) == Some(b'\t') {
                 rx += (TAB_STOP - 1) - (rx % TAB_STOP);
@@ -257,7 +267,7 @@ impl Editor {
         self.rx = 0;
 
         if self.cursor.y < self.rows.len() {
-            self.rx = self.row_cx_to_rx(self.cursor.y);
+            self.rx = self.row_cx_to_rx();
         }
 
         if self.cursor.y < self.offset.row {
@@ -277,6 +287,7 @@ impl Editor {
 
     fn set_status_message(&mut self, msg: String) {
         self.statusmsg.msg = msg;
+        self.statusmsg.time = SystemTime::now();
     }
 
     fn draw_rows(&mut self, buf: &mut String) {
@@ -317,9 +328,7 @@ impl Editor {
             }
 
             buf.push_str("\x1b[K");
-            if y < self.screen.rows - 1 {
-                buf.push_str("\r\n");
-            }
+            buf.push_str("\r\n");
         }
     }
 
@@ -355,9 +364,12 @@ impl Editor {
         buf.push_str("\x1b[K");
 
         let msg_len = std::cmp::min(self.statusmsg.msg.len(), self.screen.cols);
+        let elapsed = self.statusmsg.time.elapsed().unwrap().as_secs();
 
-        for c in self.statusmsg.msg.bytes().take(msg_len) {
-            buf.push(c as char);
+        if elapsed < 5 {
+            for c in self.statusmsg.msg.bytes().take(msg_len) {
+                buf.push(c as char);
+            }
         }
     }
 
