@@ -252,6 +252,19 @@ impl Editor {
         }
     }
 
+    fn insert_char(&mut self, c: char) {
+        if self.cursor.y == self.rows.len() {
+            self.rows.push(Row {
+                chars: "".into(),
+                render: "".into(),
+            });
+        }
+        let row = &mut self.rows[self.cursor.y];
+        row.chars.insert(self.cursor.x, c);
+        row.update_render();
+        self.cursor.x += 1;
+    }
+
     fn row_cx_to_rx(&self) -> usize {
         let mut rx = 0;
         let row = &self.rows[self.cursor.y];
@@ -482,6 +495,7 @@ impl Editor {
             Ok(Key::ArrowLeft) | Ok(Key::ArrowUp) | Ok(Key::ArrowDown) | Ok(Key::ArrowRight) => {
                 self.move_cursor(k.unwrap())
             }
+            Err(c) => self.insert_char(c),
             _ => {}
         }
     }
