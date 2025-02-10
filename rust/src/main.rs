@@ -16,6 +16,7 @@ fn ctrl_key(k: char) -> c_char {
 
 #[derive(Clone, Copy, PartialEq)]
 enum Key {
+    Backspace = 127,
     ArrowLeft = 1000,
     ArrowRight,
     ArrowUp,
@@ -25,6 +26,19 @@ enum Key {
     End,
     PageUp,
     PageDown,
+}
+
+use std::convert::TryFrom;
+
+impl TryFrom<u8> for Key {
+    type Error = ();
+
+    fn try_from(v: u8) -> Result<Self, Self::Error> {
+        match v {
+            x if x == Key::Backspace as u8 => Ok(Key::Backspace),
+            _ => Err(()),
+        }
+    }
 }
 
 /*** libc? ***/
@@ -179,6 +193,7 @@ struct Editor {
     screen: Screen,
     offset: Offset,
     rows: Vec<Row>,
+    dirty: usize,
     file_name: Option<String>,
     status_msg: StatusMsg,
 }
@@ -286,6 +301,31 @@ impl Editor {
         }
         self.cursor.y += 1;
         self.cursor.x = 0;
+    }
+
+    fn delete_char(&mut self) {
+        if self.cursor.y == self.rows.len() {
+            return;
+        }
+        if self.cursor.x == 0 && self.cursor.y == 0 {
+            return;
+        }
+        if self.cursor.x > 0 {
+            let row = &mut self.rows[self.cursor.y];
+            if self.cursor.x < row.chars.len() {
+                row.chars.remove(self.cursor.x - 1);
+                row.update_render();
+                self.dirty += 1;
+            }
+            self.cursor.x -= 1;
+        } else {
+            self.cursor.x = self.rows[self.cursor.y - 1].chars.len();
+            let Row { chars, .. } = self.rows.remove(self.cursor.y);
+            let prev_row = &mut self.rows[self.cursor.y - 1];
+            prev_row.chars.push_str(&chars);
+            prev_row.update_render();
+            self.cursor.y -= 1;
+        }
     }
 
     fn row_cx_to_rx(&self) -> usize {
@@ -482,6 +522,9 @@ impl Editor {
             }
             return Err('\x1b');
         }
+        if let Ok(k) = (c as u8).try_into() {
+            return Ok(k);
+        }
         Err(c as u8 as char)
     }
 
@@ -518,9 +561,19 @@ impl Editor {
             Ok(Key::ArrowLeft) | Ok(Key::ArrowUp) | Ok(Key::ArrowDown) | Ok(Key::ArrowRight) => {
                 self.move_cursor(k.unwrap())
             }
+            Ok(Key::Del) => {
+                self.move_cursor(Key::ArrowRight);
+                self.delete_char();
+            }
+            Ok(Key::Backspace) => {
+                self.delete_char();
+            }
+            Err(c) if c as c_char == ctrl_key('h') => {
+                self.delete_char();
+            }
+            Err(c) if c as c_char == ctrl_key('l') || c as u8 == b'\x1b' => {/* do nothing */}
             Err(c) if c == '\r' => self.insert_new_line(),
             Err(c) => self.insert_char(c),
-            _ => {}
         }
     }
 
