@@ -265,6 +265,29 @@ impl Editor {
         self.cursor.x += 1;
     }
 
+    fn insert_new_line(&mut self) {
+        if self.cursor.x == 0 {
+            self.rows.insert(self.cursor.y, Row {
+                chars: "".into(),
+                render: "".into(),
+            });
+        } else {
+            let curr_row = &mut self.rows[self.cursor.y];
+            let half_right = curr_row.chars.chars().skip(self.cursor.x).collect();
+            // keep half left
+            curr_row.chars.truncate(self.cursor.x);
+            curr_row.update_render();
+            self.rows.insert(self.cursor.y + 1, Row {
+                chars: half_right,
+                render: "".into(),
+            });
+            let new_row = &mut self.rows[self.cursor.y + 1];
+            new_row.update_render();
+        }
+        self.cursor.y += 1;
+        self.cursor.x = 0;
+    }
+
     fn row_cx_to_rx(&self) -> usize {
         let mut rx = 0;
         let row = &self.rows[self.cursor.y];
@@ -495,6 +518,7 @@ impl Editor {
             Ok(Key::ArrowLeft) | Ok(Key::ArrowUp) | Ok(Key::ArrowDown) | Ok(Key::ArrowRight) => {
                 self.move_cursor(k.unwrap())
             }
+            Err(c) if c == '\r' => self.insert_new_line(),
             Err(c) => self.insert_char(c),
             _ => {}
         }
