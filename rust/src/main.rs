@@ -9,6 +9,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 const VERSION: &str = "0.0.1";
 const TAB_STOP: usize = 8;
+const MAX_QUIT_TIMES: usize = 3;
 
 fn ctrl_key(k: char) -> c_char {
     k as i8 & 0x1f
@@ -110,6 +111,7 @@ fn get_window_size() -> Option<Screen> {
 /*** data ***/
 
 static mut ORIG_TERMIOS: libc::termios = unsafe { mem::zeroed() };
+static mut QUIT_TIMES: usize = MAX_QUIT_TIMES;
 
 /*** terminal ***/
 
@@ -596,6 +598,15 @@ impl Editor {
 
         match k {
             Err(c) if c as c_char == ctrl_key('q') => {
+                if self.dirty > 0 && unsafe { QUIT_TIMES } > 0 {
+                    self.set_status_message(format!(
+                        "WARNING!!! File has unsaved changes. Press Ctrl-Q {} more times to quit.",
+                        unsafe { QUIT_TIMES }
+                    ));
+                    unsafe { QUIT_TIMES -= 1 };
+                    return;
+                }
+
                 let _ = stdout_write(b"\x1b[2J");
                 let _ = stdout_write(b"\x1b[H");
                 std::process::exit(0);
@@ -641,6 +652,8 @@ impl Editor {
             Err(c) if c == '\r' => self.insert_new_line(),
             Err(c) => self.insert_char(c),
         }
+
+        unsafe { QUIT_TIMES = MAX_QUIT_TIMES };
     }
 
     fn move_cursor(&mut self, key: Key) {
