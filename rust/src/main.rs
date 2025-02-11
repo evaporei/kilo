@@ -334,11 +334,43 @@ impl Editor {
         }
     }
 
-    fn save(&self) {
-        let file_name = match &self.file_name {
-            None => return,
-            Some(file_name) => file_name,
-        };
+    fn prompt(&mut self, prompt: &str) -> Option<String> {
+        let prompt = prompt.to_string();
+        let mut buf = String::with_capacity(128);
+
+        loop {
+            self.set_status_message(prompt.replace("{}", &buf));
+            self.refresh_screen();
+
+            let k = self.read_key();
+            if k == Ok(Key::Del) || k == Err(ctrl_key('h') as u8 as char) || k == Ok(Key::Backspace)
+            {
+                buf.pop();
+            } else if k == Err(b'\x1b' as char) {
+                self.set_status_message("".into());
+                return None;
+            } else if k == Err('\r') {
+                if !buf.is_empty() {
+                    self.set_status_message("".into());
+                    return Some(buf);
+                }
+            } else if let Err(c) = k {
+                if unsafe { libc::iscntrl(c as i32) } == 0 && (c as u32) < 128 {
+                    buf.push(c);
+                }
+            }
+        }
+    }
+
+    fn save(&mut self) {
+        if self.file_name.is_none() {
+            self.file_name = self.prompt("Save as: {}");
+            if self.file_name.is_none() {
+                self.set_status_message("Save aborted".into());
+                return
+            }
+        }
+        let file_name = self.file_name.as_ref().unwrap();
 
         let whole_file = self
             .rows
