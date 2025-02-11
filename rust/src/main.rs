@@ -278,6 +278,7 @@ impl Editor {
         row.chars.insert(self.cursor.x, c);
         row.update_render();
         self.cursor.x += 1;
+        self.dirty += 1;
     }
 
     fn insert_new_line(&mut self) {
@@ -307,6 +308,7 @@ impl Editor {
         }
         self.cursor.y += 1;
         self.cursor.x = 0;
+        self.dirty += 1;
     }
 
     fn delete_char(&mut self) {
@@ -473,7 +475,8 @@ impl Editor {
         buf.push_str("\x1b[7m");
 
         let filename = self.file_name.as_deref().unwrap_or("[No Name]");
-        let mut status = format!("{filename:.20} - {} lines", self.rows.len());
+        let dirty = if self.dirty > 0 { "(modified)" } else { "" };
+        let mut status = format!("{filename:.20} - {} lines {}", self.rows.len(), dirty);
 
         let mut len = status.len();
         if len > self.screen.cols {
