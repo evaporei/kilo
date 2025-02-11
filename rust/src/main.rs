@@ -367,7 +367,7 @@ impl Editor {
             self.file_name = self.prompt("Save as: {}");
             if self.file_name.is_none() {
                 self.set_status_message("Save aborted".into());
-                return
+                return;
             }
         }
         let file_name = self.file_name.as_ref().unwrap();
@@ -378,8 +378,14 @@ impl Editor {
             .map(|row| row.chars.as_str())
             .collect::<Vec<_>>()
             .join("\n");
+        let bytes = whole_file.bytes().len();
 
-        let _ = std::fs::write(file_name, whole_file);
+        if let Err(err) = std::fs::write(file_name, whole_file) {
+            self.set_status_message(format!("Can't save! I/O error: {err}"));
+        } else {
+            self.set_status_message(format!("{} bytes written to disk", bytes));
+            self.dirty = 0;
+        }
     }
 
     fn row_cx_to_rx(&self) -> usize {
