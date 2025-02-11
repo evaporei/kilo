@@ -334,6 +334,22 @@ impl Editor {
         }
     }
 
+    fn save(&self) {
+        let file_name = match &self.file_name {
+            None => return,
+            Some(file_name) => file_name,
+        };
+
+        let whole_file = self
+            .rows
+            .iter()
+            .map(|row| row.chars.as_str())
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        let _ = std::fs::write(file_name, whole_file);
+    }
+
     fn row_cx_to_rx(&self) -> usize {
         let mut rx = 0;
         let row = &self.rows[self.cursor.y];
@@ -577,6 +593,9 @@ impl Editor {
             Err(c) if c as c_char == ctrl_key('h') => {
                 self.delete_char();
             }
+            Err(c) if c as c_char == ctrl_key('s') => {
+                self.save();
+            }
             Err(c) if c as c_char == ctrl_key('l') || c as u8 == b'\x1b' => { /* do nothing */ }
             Err(c) if c == '\r' => self.insert_new_line(),
             Err(c) => self.insert_char(c),
@@ -644,7 +663,7 @@ fn main() {
     };
     let mut editor = Editor::new(filename);
 
-    editor.set_status_message("HELP: Ctrl-Q = quit".into());
+    editor.set_status_message("HELP: Ctrl-S = save | Ctrl-Q = quit".into());
 
     loop {
         editor.refresh_screen();
