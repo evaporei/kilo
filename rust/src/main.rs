@@ -153,25 +153,25 @@ fn enable_raw_mode() {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, Copy)]
 struct Cursor {
     x: usize,
     y: usize,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, Copy)]
 struct Screen {
     rows: usize,
     cols: usize,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, Copy)]
 struct Offset {
     row: usize,
     col: usize,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct StatusMsg {
     msg: String,
     time: SystemTime,
@@ -186,7 +186,7 @@ impl Default for StatusMsg {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 struct Editor {
     cursor: Cursor,
     // cursor.x  => index into row[at].chars
@@ -198,9 +198,12 @@ struct Editor {
     dirty: usize,
     file_name: Option<String>,
     status_msg: StatusMsg,
+
+    last_match: i32,
+    direction: i32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Row {
     chars: String,
     render: String,
@@ -265,6 +268,8 @@ impl Editor {
             screen,
             file_name: filename,
             rows,
+            last_match: -1,
+            direction: 1,
             ..Self::default()
         }
     }
@@ -338,7 +343,11 @@ impl Editor {
         }
     }
 
-    fn prompt(&mut self, prompt: &str) -> Option<String> {
+    fn prompt(
+        &mut self,
+        prompt: &str,
+        callback: Option<impl Fn(&mut Self, &str, Result<Key, char>)>,
+    ) -> Option<String> {
         let prompt = prompt.to_string();
         let mut buf = String::with_capacity(128);
 
@@ -352,10 +361,16 @@ impl Editor {
                 buf.pop();
             } else if k == Err(b'\x1b' as char) {
                 self.set_status_message("".into());
+                if let Some(cb) = callback.as_ref() {
+                    cb(self, &buf, k);
+                }
                 return None;
             } else if k == Err('\r') {
                 if !buf.is_empty() {
                     self.set_status_message("".into());
+                    if let Some(cb) = callback.as_ref() {
+                        cb(self, &buf, k);
+                    }
                     return Some(buf);
                 }
             } else if let Err(c) = k {
@@ -363,12 +378,19 @@ impl Editor {
                     buf.push(c);
                 }
             }
+
+            if let Some(cb) = callback.as_ref() {
+                cb(self, &buf, k);
+            }
         }
     }
 
     fn save(&mut self) {
         if self.file_name.is_none() {
-            self.file_name = self.prompt("Save as: {}");
+            self.file_name = self.prompt(
+                "Save as: {}",
+                None::<fn(&mut Self, &str, Result<Key, char>)>,
+            );
             if self.file_name.is_none() {
                 self.set_status_message("Save aborted".into());
                 return;
@@ -392,6 +414,56 @@ impl Editor {
         }
     }
 
+    fn find_callback(&mut self, query: &str, key: Result<Key, char>) {
+        if key == Err('\r') || key == Err('\x1b') {
+            self.last_match = -1;
+            self.direction = 1;
+            return;
+        } else if key == Ok(Key::ArrowRight) || key == Ok(Key::ArrowDown) {
+            self.direction = 1;
+        } else if key == Ok(Key::ArrowLeft) || key == Ok(Key::ArrowUp) {
+            self.direction = -1;
+        } else {
+            self.last_match = -1;
+            self.direction = 1;
+        }
+
+        if self.last_match == -1 {
+            self.direction = 1;
+        }
+        let mut current = self.last_match;
+        for _ in 0..self.rows.len() {
+            current += self.direction;
+            if current == -1 {
+                current = self.rows.len() as i32 - 1;
+            } else if current == self.rows.len() as i32 {
+                current = 0
+            }
+
+            let row = &self.rows[current as usize];
+            if let Some(match_) = row.render.find(query) {
+                self.last_match = current;
+                self.cursor.y = current as usize;
+                self.cursor.x = self.row_rx_to_cx(row, match_);
+                self.offset.row = self.rows.len();
+                break;
+            }
+        }
+    }
+
+    fn find(&mut self) {
+        let saved_cursor = self.cursor;
+        let saved_offset = self.offset;
+
+        if let None = self.prompt(
+            "Search: %s (Use ESC/Arrows/Enter)",
+            Some(Self::find_callback),
+        ) {
+            self.cursor = saved_cursor;
+            self.offset = saved_offset;
+        }
+    }
+
     fn row_cx_to_rx(&self) -> usize {
         let mut rx = 0;
         let row = &self.rows[self.cursor.y];
@@ -402,6 +474,22 @@ impl Editor {
             rx += 1;
         }
         rx
+    }
+
+    fn row_rx_to_cx(&self, row: &Row, rx: usize) -> usize {
+        let mut curr_rx = 0;
+        let mut cx = 0;
+        for ch in row.chars.chars() {
+            if ch == '\t' {
+                curr_rx += (TAB_STOP - 1) - (curr_rx % TAB_STOP);
+            }
+            curr_rx += 1;
+            cx += 1;
+            if curr_rx > rx {
+                return cx;
+            }
+        }
+        cx
     }
 
     fn scroll(&mut self) {
@@ -648,6 +736,9 @@ impl Editor {
             Err(c) if c as c_char == ctrl_key('s') => {
                 self.save();
             }
+            Err(c) if c as c_char == ctrl_key('f') => {
+                self.find();
+            }
             Err(c) if c as c_char == ctrl_key('l') || c as u8 == b'\x1b' => { /* do nothing */ }
             Err(c) if c == '\r' => self.insert_new_line(),
             Err(c) => self.insert_char(c),
@@ -717,7 +808,7 @@ fn main() {
     };
     let mut editor = Editor::new(filename);
 
-    editor.set_status_message("HELP: Ctrl-S = save | Ctrl-Q = quit".into());
+    editor.set_status_message("HELP: Ctrl-S = save | Ctrl-Q = quit | Ctrl-F = find".into());
 
     loop {
         editor.refresh_screen();
