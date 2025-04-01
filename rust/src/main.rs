@@ -42,6 +42,85 @@ impl TryFrom<u8> for Key {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq)]
+enum Highlight {
+    Normal = 0,
+    Comment,
+    Mlcomment,
+    Keyword1,
+    Keyword2,
+    String,
+    Number,
+    Match,
+}
+
+#[derive(Debug, Default, Copy, Clone)]
+struct Syntax {
+    filetype: &'static str,
+    filematch: &'static [&'static str],
+    keywords: &'static [&'static str],
+    singleline_comment_start: &'static str,
+    multiline_comment_start: &'static str,
+    multiline_comment_end: &'static str,
+    flags: usize,
+}
+
+const C_HL_EXTENSIONS: &[&str] = &["c", "h", "cpp"];
+const C_HL_KEYWORDS: &[&str] = &[
+    "switch",
+    "if",
+    "while",
+    "for",
+    "break",
+    "continue",
+    "return",
+    "else",
+    "struct",
+    "union",
+    "typedef",
+    "static",
+    "enum",
+    "class",
+    "case",
+    "int|",
+    "long|",
+    "double|",
+    "float|",
+    "char|",
+    "unsigned|",
+    "signed|",
+    "void|",
+];
+const HIGHLIGHT_NUMBERS: usize = 1 << 0;
+const HIGHLIGHT_STRINGS: usize = 1 << 1;
+
+const HLDB: &[Syntax] = &[Syntax {
+    filetype: "c",
+    filematch: C_HL_EXTENSIONS,
+    keywords: C_HL_KEYWORDS,
+    singleline_comment_start: "//",
+    multiline_comment_start: "/*",
+    multiline_comment_end: "*/",
+    flags: HIGHLIGHT_NUMBERS | HIGHLIGHT_STRINGS,
+}];
+
+fn is_separator(key: char) -> bool {
+    " ,.()+-/*=~%<>[];".contains(key)
+}
+
+fn syntax_to_color(hl: Highlight) -> isize {
+    use Highlight::*;
+    match hl {
+        Comment | Mlcomment => 36,
+        Keyword1 => 33,
+        Keyword2 => 32,
+        String => 35,
+        Number => 31,
+        Match => 34,
+        Normal => 37,
+    }
+}
+
 /*** libc? ***/
 
 fn errno() -> i32 {
@@ -198,15 +277,21 @@ struct Editor {
     dirty: usize,
     file_name: Option<String>,
     status_msg: StatusMsg,
+    syntax: Option<Syntax>,
 
+    // static local in C
     last_match: i32,
     direction: i32,
+    saved_hl_line: usize,
+    saved_hl: Vec<Highlight>,
 }
 
 #[derive(Debug, Clone)]
 struct Row {
     chars: String,
     render: String,
+    hl: Vec<Highlight>,
+    hl_open_comment: bool,
 }
 
 impl Row {
@@ -247,7 +332,19 @@ impl Editor {
         let mut screen = get_window_size().unwrap_or_else(|| die("get_window_size"));
         screen.rows -= 2;
 
-        let rows = match &filename {
+        let mut editor = Self {
+            cursor,
+            screen,
+            file_name: filename,
+            rows: vec![],
+            last_match: -1,
+            direction: 1,
+            ..Self::default()
+        };
+
+        editor.select_syntax_highlight();
+
+        editor.rows = match &editor.file_name {
             Some(f) => read_lines(f)
                 .unwrap_or_else(|_| die("fopen"))
                 .map(Result::unwrap)
@@ -255,6 +352,8 @@ impl Editor {
                     let mut row = Row {
                         render: "".into(),
                         chars,
+                        hl: vec![],
+                        hl_open_comment: false,
                     };
                     row.update_render();
                     row
@@ -263,15 +362,11 @@ impl Editor {
             None => vec![],
         };
 
-        Self {
-            cursor,
-            screen,
-            file_name: filename,
-            rows,
-            last_match: -1,
-            direction: 1,
-            ..Self::default()
+        for y in 0..editor.rows.len() {
+            editor.update_syntax(y);
         }
+
+        editor
     }
 
     fn insert_char(&mut self, c: char) {
@@ -279,6 +374,8 @@ impl Editor {
             self.rows.push(Row {
                 chars: "".into(),
                 render: "".into(),
+                hl: vec![],
+                hl_open_comment: false,
             });
         }
         let row = &mut self.rows[self.cursor.y];
@@ -295,6 +392,8 @@ impl Editor {
                 Row {
                     chars: "".into(),
                     render: "".into(),
+                    hl: vec![],
+                    hl_open_comment: false,
                 },
             );
         } else {
@@ -308,6 +407,8 @@ impl Editor {
                 Row {
                     chars: half_right,
                     render: "".into(),
+                    hl: vec![],
+                    hl_open_comment: false,
                 },
             );
             self.update_row(self.cursor.y + 1);
@@ -338,12 +439,14 @@ impl Editor {
             let prev_row = &mut self.rows[self.cursor.y - 1];
             prev_row.chars.push_str(&chars);
             self.update_row(self.cursor.y - 1);
+            self.rows.remove(self.cursor.y);
             self.cursor.y -= 1;
         }
     }
 
     fn update_row(&mut self, y: usize) {
-        self.rows[y].update_render()
+        self.rows[y].update_render();
+        self.update_syntax(y);
     }
 
     fn prompt(
@@ -398,6 +501,7 @@ impl Editor {
                 self.set_status_message("Save aborted".into());
                 return;
             }
+            self.select_syntax_highlight();
         }
         let file_name = self.file_name.as_ref().unwrap();
 
@@ -418,6 +522,11 @@ impl Editor {
     }
 
     fn find_callback(&mut self, query: &str, key: Result<Key, char>) {
+        if !self.saved_hl.is_empty() {
+            self.rows[self.saved_hl_line].hl = self.saved_hl.clone();
+            self.saved_hl.clear();
+        }
+
         if key == Err('\r') || key == Err('\x1b') {
             self.last_match = -1;
             self.direction = 1;
@@ -443,12 +552,17 @@ impl Editor {
                 current = 0
             }
 
-            let row = &self.rows[current as usize];
-            if let Some(match_) = row.render.find(query) {
+            if let Some(match_) = self.rows[current as usize].render.find(query) {
                 self.last_match = current;
                 self.cursor.y = current as usize;
-                self.cursor.x = self.row_rx_to_cx(row, match_);
+                self.cursor.x = self.row_rx_to_cx(&self.rows[current as usize], match_);
                 self.offset.row = self.rows.len();
+
+                self.saved_hl_line = current as usize;
+                self.saved_hl = self.rows[current as usize].hl.clone();
+                for i in match_..query.len() {
+                    self.rows[current as usize].hl[i] = Highlight::Match;
+                }
                 break;
             }
         }
@@ -522,7 +636,7 @@ impl Editor {
         self.status_msg.time = SystemTime::now();
     }
 
-    fn draw_rows(&mut self, buf: &mut String) {
+    fn draw_rows(&self, buf: &mut String) {
         for y in 0..self.screen.rows {
             let file_row = y + self.offset.row;
             if file_row >= self.rows.len() {
@@ -552,9 +666,39 @@ impl Editor {
                 if len > self.screen.cols as isize {
                     len = self.screen.cols as isize;
                 }
+                let hl = &self.rows[file_row].hl[self.offset.col..];
+                let mut curr_color = -1;
                 for i in 0..len as usize {
-                    if let Some(ch) = self.rows[file_row].render.bytes().nth(i) {
-                        buf.push(ch as char);
+                    if let Some(ch) = self.rows[file_row]
+                        .render
+                        .bytes()
+                        .skip(self.offset.col)
+                        .nth(i)
+                    {
+                        if unsafe { libc::iscntrl(ch as i32) } != 0 {
+                            let sym = if ch <= 26 { b'@' + ch } else { b'?' };
+                            buf.push_str("\x1b[7m");
+                            // prob will explode, need to change String -> Vec<u8>
+                            buf.push(sym as char);
+                            buf.push_str("\x1b[m");
+                            if curr_color != -1 {
+                                buf.push_str(&format!("\x1b[{curr_color}m"));
+                            }
+                        } else if hl[i] == Highlight::Normal {
+                            // kaboom
+                            if curr_color != -1 {
+                                buf.push_str("\x1b[39m");
+                                curr_color = -1;
+                            }
+                            buf.push(ch as char);
+                        } else {
+                            let color = syntax_to_color(hl[i]);
+                            if color != curr_color {
+                                curr_color = color;
+                                buf.push_str(&format!("\x1b[{color}m"));
+                            }
+                            buf.push(ch as char);
+                        }
                     }
                 }
             }
@@ -578,7 +722,12 @@ impl Editor {
         }
         buf.push_str(&status);
 
-        let row_status = format!("{}/{}", self.cursor.y + 1, self.rows.len());
+        let filetype = if let Some(syntax) = self.syntax {
+            syntax.filetype
+        } else {
+            "no ft"
+        };
+        let row_status = format!("{} | {}/{}", filetype, self.cursor.y + 1, self.rows.len());
 
         while len < self.screen.cols {
             if self.screen.cols - len == row_status.len() {
@@ -797,6 +946,171 @@ impl Editor {
         let row_len = row.map(|r| r.chars.len()).unwrap_or_default();
         if self.cursor.x > row_len {
             self.cursor.x = row_len;
+        }
+    }
+
+    fn select_syntax_highlight(&mut self) {
+        self.syntax = None;
+
+        if self.file_name.is_none() {
+            return;
+        }
+
+        // lol, should hold path mam
+        let ext = self
+            .file_name
+            .as_ref()
+            .unwrap()
+            .split('.')
+            .skip(1)
+            .next()
+            .unwrap();
+
+        self.syntax = match HLDB.iter().find(|syntax| syntax.filematch.contains(&ext)) {
+            None => return,
+            Some(syntax) => Some(*syntax),
+        };
+
+        for y in 0..self.rows.len() {
+            self.update_syntax(y);
+        }
+    }
+
+    fn update_syntax(&mut self, y: usize) {
+        self.rows[y].hl = vec![Highlight::Normal; self.rows[y].render.len()];
+
+        let syntax = match self.syntax {
+            None => return,
+            Some(syntax) => syntax,
+        };
+
+        let keywords = syntax.keywords;
+
+        let scs = syntax.singleline_comment_start;
+        let mcs = syntax.multiline_comment_start;
+        let mce = syntax.multiline_comment_end;
+
+        let mut prev_sep = true;
+        let mut in_string = None;
+        let mut in_comment = y > 0 && self.rows[y - 1].hl_open_comment;
+
+        let mut i = 0;
+        'outer: while i < self.rows[y].render.len() {
+            let c = self.rows[y].render.chars().nth(i).unwrap();
+            let prev_hl = if i > 0 {
+                self.rows[y].hl[i - 1]
+            } else {
+                Highlight::Normal
+            };
+            if scs.len() > 0 && in_string.is_none() && !in_comment {
+                let from_i = &self.rows[y].render.as_bytes()[i..];
+                if from_i == scs.as_bytes() {
+                    for j in i..self.rows[y].render.len() {
+                        self.rows[y].hl[j] = Highlight::Comment;
+                    }
+                    break;
+                }
+            }
+
+            if mcs.len() > 0 && mce.len() > 0 && in_string.is_none() {
+                if in_comment {
+                    self.rows[y].hl[i] = Highlight::Mlcomment;
+                    let from_i = &self.rows[y].render.as_bytes()[i..];
+                    if from_i == mce.as_bytes() {
+                        for j in i..mce.len() {
+                            self.rows[y].hl[j] = Highlight::Mlcomment;
+                        }
+                        i += mce.len();
+                        in_comment = false;
+                        prev_sep = true;
+                    } else {
+                        i += 1;
+                    }
+                    continue;
+                } else if &self.rows[y].render.as_bytes()[i..] == mcs.as_bytes() {
+                    for j in i..mcs.len() {
+                        self.rows[y].hl[j] = Highlight::Mlcomment;
+                    }
+                    i += mcs.len();
+                    in_comment = true;
+                    continue;
+                }
+            }
+
+            if syntax.flags & HIGHLIGHT_STRINGS != 0 {
+                if let Some(in_str) = in_string {
+                    self.rows[y].hl[i] = Highlight::String;
+                    if c == '\\' && i + 1 < self.rows[y].render.len() {
+                        self.rows[y].hl[i + 1] = Highlight::String;
+                        i += 2;
+                        continue;
+                    }
+                    if c == in_str {
+                        in_string = None;
+                    }
+                    i += 1;
+                    prev_sep = true;
+                    continue;
+                } else {
+                    if c == '"' || c == '\'' {
+                        in_string = Some(c);
+                        self.rows[y].hl[i] = Highlight::String;
+                        i += 1;
+                        continue;
+                    }
+                }
+            }
+
+            if syntax.flags & HIGHLIGHT_NUMBERS != 0 {
+                if c.is_ascii_digit() && (prev_sep || prev_hl == Highlight::Number)
+                    || (c == '.' && prev_hl == Highlight::Number)
+                {
+                    self.rows[y].hl[i] = Highlight::Number;
+                    i += 1;
+                    prev_sep = false;
+                    continue;
+                }
+            }
+
+            if prev_sep {
+                for (j, keyword) in keywords.into_iter().enumerate() {
+                    let kw2 = keyword.ends_with('|');
+                    let k_len = if kw2 {
+                        keyword.len() - 1
+                    } else {
+                        keyword.len()
+                    };
+
+                    let max_render_len = std::cmp::min(i + k_len, self.rows[y].render.len());
+                    if &self.rows[y].render.as_bytes()[i..max_render_len]
+                        == &keyword.as_bytes()[..k_len]
+                        && is_separator(self.rows[y].render.as_bytes()[i + k_len] as char)
+                    {
+                        for k in i..k_len {
+                            self.rows[y].hl[k] = if kw2 {
+                                Highlight::Keyword2
+                            } else {
+                                Highlight::Keyword1
+                            };
+                        }
+                        i += k_len;
+                        if j != keywords.len() - 1 {
+                            prev_sep = false;
+                            continue 'outer;
+                        }
+                        break;
+                    }
+                }
+            }
+
+            prev_sep = is_separator(c);
+            i += 1;
+        }
+
+        let changed = self.rows[y].hl_open_comment != in_comment;
+        self.rows[y].hl_open_comment = in_comment;
+        if changed && y + 1 < self.rows.len() {
+            self.update_syntax(y + 1);
         }
     }
 }
