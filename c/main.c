@@ -267,7 +267,7 @@ void editor_update_syntax(Row *row) {
 
         if (scs_len && !in_string && !in_comment) {
             if (!strncmp(&row->render[i], scs, scs_len)) {
-                memset(&row->hl[i], HL_COMMENT, row->size - i);
+                memset(&row->hl[i], HL_COMMENT, row->rsize - i);
                 break;
             }
         }
