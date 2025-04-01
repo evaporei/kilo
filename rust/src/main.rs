@@ -283,7 +283,7 @@ impl Editor {
         }
         let row = &mut self.rows[self.cursor.y];
         row.chars.insert(self.cursor.x, c);
-        row.update_render();
+        self.update_row(self.cursor.y);
         self.cursor.x += 1;
         self.dirty += 1;
     }
@@ -302,7 +302,7 @@ impl Editor {
             let half_right = curr_row.chars.chars().skip(self.cursor.x).collect();
             // keep half left
             curr_row.chars.truncate(self.cursor.x);
-            curr_row.update_render();
+            self.update_row(self.cursor.y);
             self.rows.insert(
                 self.cursor.y + 1,
                 Row {
@@ -310,8 +310,7 @@ impl Editor {
                     render: "".into(),
                 },
             );
-            let new_row = &mut self.rows[self.cursor.y + 1];
-            new_row.update_render();
+            self.update_row(self.cursor.y + 1);
         }
         self.cursor.y += 1;
         self.cursor.x = 0;
@@ -329,7 +328,7 @@ impl Editor {
             let row = &mut self.rows[self.cursor.y];
             if self.cursor.x < row.chars.len() {
                 row.chars.remove(self.cursor.x - 1);
-                row.update_render();
+                self.update_row(self.cursor.y);
                 self.dirty += 1;
             }
             self.cursor.x -= 1;
@@ -338,9 +337,13 @@ impl Editor {
             let Row { chars, .. } = self.rows.remove(self.cursor.y);
             let prev_row = &mut self.rows[self.cursor.y - 1];
             prev_row.chars.push_str(&chars);
-            prev_row.update_render();
+            self.update_row(self.cursor.y - 1);
             self.cursor.y -= 1;
         }
+    }
+
+    fn update_row(&mut self, y: usize) {
+        self.rows[y].update_render()
     }
 
     fn prompt(
